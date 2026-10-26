@@ -29,7 +29,8 @@
 - 위치: 브리핑·watch는 **job 전용 스레드**("Eve 브리핑", job당 하나), follow-up은 **원 스레드**.
 - in-app 알림 = `GET /v1/notifications`(origin='proactive' AND read_at IS NULL), 읽음 = `POST /v1/messages/{id}/read`.
 - UI 갱신: 앱 열기, `visibilitychange→visible`, 포그라운드 60초 주기 폴링(PM §2.1, SSE는 TBD). 오프라인이면 폴링 중단.
-- 메시지 목록 응답에 `origin`·`job_id`·`read_at`이 포함돼야 합니다 **[Q1]**. 목록 행 미읽음 개수 **[Q2]**.
+- 메시지 필드(확정, Q1): `origin`(`user`|`assistant`|`proactive`), `job_id`(선톡일 때만, 그 외 null), `read_at`(null이면 미읽음).
+- 스레드 목록 필드(확정, Q2): 서버가 계산한 `unread_count`. 선톡이 도착하면 `threads.updated_at`이 갱신되고, 목록 정렬은 `updated_at` 기준.
 
 ## A2. 스레드 안 표시
 선톡은 "사용자 질문 없이 Eve가 먼저 말한 것"이므로 **답변과 같은 무버블 본문(17/1.55)** 을 유지하고, 위에 **출처 줄 하나**만 더합니다. 박스·배경색·색상 테두리는 쓰지 않습니다(콘텐츠가 주인공).
@@ -59,7 +60,7 @@
 ## A3. 미읽음 배지
 ### A3.1 스레드 목록 행
 - 행 왼쪽 여백(16px 안쪽)에 **파란 점 10px `--badge`**(Mail 방식). 2개 이상이면 시간 자리 오른쪽에 숫자 pill: 높이 20, 최소폭 20, 패딩 0 6, r999, `--badge` 배경 `--badge-fg` 12/600 tabular-nums, 99+ 상한. 미읽음 행 제목 600 → 그대로, **미리보기는 `--label`로 진하게**(읽음은 `--label-2`).
-- 정렬: 기존 `updated_at` 순 그대로(선톡 도착이 updated_at을 올린다고 가정 **[Q2]**). "Eve 브리핑" 스레드는 행 아이콘 자리에 sun.horizon 16px `--label-2`로 job 스레드임을 표시 **[Q5]**.
+- 정렬: `updated_at` 순(선톡 도착 시 서버가 갱신, Q2 확정). 점·pill 숫자는 서버 `unread_count`. "Eve 브리핑" 스레드는 행 아이콘 자리에 sun.horizon 16px `--label-2`로 job 스레드임을 표시 **[Q5]**.
 - 스와이프 액션 추가(THREADS §2.4 앞쪽): 미읽음 행에 **[읽음으로 표시 (--accent)]** 오른쪽 스와이프. 읽은 행에는 없음(“안 읽음으로 표시”는 서버 기능 없음 → 제공 안 함).
 
 ### A3.2 앱 / 타이틀
@@ -86,26 +87,25 @@ iOS 그룹 리스트(SPEC §6.14): 섹션 라벨 13 `--label-2`, 그룹 `--bg-el
 ```
 선톡
 ┌──────────────────────────────────────┐
-│ Eve가 먼저 말하기               [ ◯ ] │  ← settings.proactive.enabled (기본 off)
+│ Eve가 먼저 말하기               [ ◯ ] │  ← proactive.enabled (기본 off)
 └──────────────────────────────────────┘
  Eve가 브리핑이나 알림을 먼저 보낼 수 있어요. 하루 최대 3번.   (13 --label-2, footer)
 
 (켜졌을 때만 아래 그룹이 280ms 높이 보간으로 펼쳐짐)
 조용한 시간
 ┌──────────────────────────────────────┐
-│ 시작                        오후 10:00 │  ← quiet_start "22:00"
-│ 종료                        오전 8:00  │  ← quiet_end   "08:00"
+│ 시작                        오후 10:00 │  ← proactive.quiet_hours.start "22:00"
+│ 종료                        오전 8:00  │  ← proactive.quiet_hours.end   "08:00"
 └──────────────────────────────────────┘
  이 시간에 온 메시지는 알림 없이 보관했다가 끝날 때 한 번에 알려 드려요.
 
-하루 알림 수
-│ 하루 최대                    3번  [− +] │  ← daily_cap 0..10 (stepper)
-
-선톡에서 메모리 사용          [ ◯ ]          ← proactive.memory_read (기본 off)
+선톡에서 메모리 사용          [ ◯ ]          ← proactive.memory_read (기본 false, memory.enabled=true일 때만 표시)
  켜면 이름·선호·진행 중인 일만 참고해요.
 ```
-- 시각 행: 탭하면 행 아래 인라인 `<input type="time" step="900">`(iOS 휠) 펼침, 17px, 값 표시 `--accent`. 저장 형식 `HH:MM`(24h), 표시 `오후 10:00`. 시작=종료면 저장 거부 + 행 아래 13 `--danger` "시작과 종료가 같을 수 없어요". 자정 넘김(22→08) 정상.
-- 저장: NATIVE §6 시트 관례대로 "완료" 시 PATCH. 토글은 즉시 낙관적 반영 + 실패 시 롤백·토스트 "설정을 저장하지 못했어요 · 다시 시도". 엔드포인트 미정 **[Q7]**. 서버가 알 수 없는 키를 거부하므로 위 5개 키만 보냄.
+- 시각 행: 탭하면 행 아래 인라인 `<input type="time" step="900">`(iOS 휠) 펼침, 17px, 값 표시 `--accent`. 저장 형식 `proactive.quiet_hours = {"start":"22:00","end":"08:00"}`: 24시간 `HH:MM`, 서버 시간대(서울) 기준, 표시 `오후 10:00`. 시작=종료면 저장 거부 + 행 아래 13 `--danger` "시작과 종료가 같을 수 없어요". end < start면 자정을 넘는 구간(22→08)으로 정상 처리. 기기 시간대가 서울이 아니어도 값은 서울 기준으로 저장·표시하고 footer에 "한국 시간 기준" 부가.
+- 하루 최대 횟수: P1 UI에 없음. 서버가 하루 3번으로 고정(footer 문구만 유지). `proactive.daily_cap`(1~3, 낮추기만 가능)은 후속 단계용으로 예약.
+- `proactive.memory_read` 행은 `memory.enabled=false`면 숨김(값은 보존).
+- 저장: NATIVE §6 시트 관례대로 "완료" 시 PATCH. 토글은 즉시 낙관적 반영 + 실패 시 롤백·토스트 "설정을 저장하지 못했어요 · 다시 시도". API(확정, Q7): `GET /v1/settings`, `PATCH /v1/settings`(부분 수정, 바뀐 키만 전송). 저장 위치 `users.settings` JSONB. P1 키: `proactive.enabled`, `proactive.quiet_hours`, `proactive.memory_read`, `memory.enabled`. 서버가 알 수 없는 키를 거부하므로 이 키만 보냄.
 - 서버/운영 전역 off(`GW_PROACTIVE_ENABLED=false`·`proactive_off`)면 토글 비활성 + footer "지금은 이 기능을 쓸 수 없어요" **[Q8: 전역 상태 노출 필드]**.
 - **잠금 화면 미리보기 설정 없음**: 행을 만들지 않습니다. 2차 Web Push에서도 알림 문구는 SW 고정 문구 "Eve에게서 새 메시지가 있어요"(PM §2.4)이며 내용·제목·발신 job 이름을 넣지 않습니다. 알림 권한 요청 행("알림 받기")은 2차에서 standalone일 때만, 사용자 탭으로만 요청.
 - 끄면: job 실행 중단(서버). 기존 선톡 메시지·미읽음은 그대로 남음. 확인 액션 시트 없음(되돌릴 수 있는 설정).
@@ -166,6 +166,7 @@ iOS 그룹 리스트(SPEC §6.14): 섹션 라벨 13 `--label-2`, 그룹 `--bg-el
 |---|---|---|
 | `pending` | `pending` (토큰 있음) | 버튼 2개 활성. 만료 30초 전부터 ⑥ "30초 뒤 만료" 카운트(1초 갱신, aria-live 없음) |
 | `pending·preparing` | `pending`, `token_sha256` NULL(scheduler) | 뷰포트 진입 시 `reissue` 호출 중: 주 버튼 비활성 + 스피너 14 + "준비 중…" |
+| `revising` (forget 부분 선택) | `revise` 요청 중 → 원 제안 폐기 | preparing과 같은 표시(주 버튼 비활성 + 스피너 + "준비 중…"), 체크박스 비활성. 응답의 새 제안으로 카드 교체 → `pending`. 400(부분집합 아님)·네트워크 오류 → `error` |
 | `submitting` | (approve 요청 중) → `executing` | 누른 버튼에 스피너, 두 버튼 비활성, 카드 opacity 유지(흐리게 하지 않음) |
 | `confirmed` | `executed` | 버튼 줄 → 결과 줄(220ms 높이 보간): checkmark 14 `--label-2` + 13/18 `--label-2` "저장했어요"/"2개 지웠어요"/"10월 28일 오전 9:00에 알려 드릴게요"/"실행했어요". 카드 본문은 남기되 `--label-2`로 낮춤 |
 | `declined` | `rejected` | 결과 줄 "취소했어요" `--label-3`, 본문 접힘(제목만 남긴 1줄 카드, 높이 44) |
@@ -195,14 +196,15 @@ API:
 - 승인 `POST /v1/actions/{id}/approve` `{confirm_token, payload_hash}` (CSRF·Origin; 브라우저 fetch는 Origin 자동)
 - 거절 `POST /v1/actions/{id}/reject`
 - 토큰 발급/재발급 `POST /v1/actions/{id}/reissue`
+- 부분 선택 재제안 `POST /v1/proposals/{id}/revise` `{item_ids}` → 새 제안 `{action_id, payload_view, payload_hash, confirm_token, expires_at, …}`. 카드는 `data-action-id`를 새 id로 바꾸고 원 id는 폐기 처리
 - 복원 `GET /v1/actions?status=pending`
 JS 인터페이스(프론트 구현 가이드):
 ```js
 renderConfirmCard(card, { mount, onSettled })   // DOM 생성, state='pending'|'preparing'
 setCardState(action_id, state, { message, result })
-// 이벤트: 'confirm' {action_id, payload_hash, selected?}  'decline' {action_id}
+// 이벤트: 'confirm' {action_id, payload_hash}  'revise' {action_id, item_ids}  'decline' {action_id}
 ```
-클래스: `.confirm-card[data-variant=remember|forget|proactive|tool][data-state=pending|preparing|submitting|confirmed|declined|expired|error]`, `.cc-head .cc-taint .cc-prov .cc-body .cc-actions .cc-primary.cc-danger .cc-secondary .cc-result .cc-meta`.
+클래스: `.confirm-card[data-variant=remember|forget|proactive|tool][data-state=pending|preparing|revising|submitting|confirmed|declined|expired|error]`, `.cc-head .cc-taint .cc-prov .cc-body .cc-actions .cc-primary.cc-danger .cc-secondary .cc-result .cc-meta`.
 
 ## C5. 접근성
 - 카드 `role="group"` `aria-labelledby=<제목 id>` `aria-describedby=<본문 id, taint 줄 id>`. `role="alertdialog"`는 쓰지 않음(모달이 아님).
@@ -219,7 +221,7 @@ setCardState(action_id, state, { message, result })
 
 ## B0. 데이터 (MEM §1·§4 기준)
 항목: `{id, kind: profile|preference|fact|task, text(≤300자), pinned, confidence: user|confirmed, source:{thread_id, message_id}, created_at, updated_at, expires_at}`. 최대 200개, 64KiB.
-API: `GET /v1/memory`, `POST /v1/memory/items`, `PATCH /v1/memory/items/{id}`(text, pinned, expires_at), `DELETE /v1/memory/items/{id}`, `DELETE /v1/memory`, `GET /v1/memory/export`. 토글 `memory_enabled`(기본 on, `users.settings`).
+API: `GET /v1/memory`, `POST /v1/memory/items`, `PATCH /v1/memory/items/{id}`(text, pinned, expires_at), `DELETE /v1/memory/items/{id}`, `DELETE /v1/memory`, `GET /v1/memory/export`. 토글 `memory.enabled`(기본 on, `GET/PATCH /v1/settings`, Q7 확정).
 
 ## B1. '기억해' 카드 = §C variant `remember`
 - 사용자가 "기억해 …"라고 해도 바로 저장하지 않고 항상 카드(MEM §2-1). 본문은 **서버가 정규화한 최종 텍스트**(payload_view) 그대로 — UI에서 편집 불가(해시 바인딩). 수정하고 싶으면 저장 후 설정에서 편집.
@@ -239,7 +241,7 @@ API: `GET /v1/memory`, `POST /v1/memory/items`, `PATCH /v1/memory/items/{id}`(te
 - 확실한 매칭(1개 이상): 모두 **체크된 상태**로 시작. 모호한 매칭(여러 후보·확신 낮음, MEM §2-4): 제목 "어떤 걸 지울까요?", **모두 해제 상태**로 시작, 후보 최대 8개 + "N개 더 보기". 구분 필드 **[Q11]**.
 - 행: 체크박스(원형 22px, 체크 시 `--danger` 채움 + 흰 체크), 텍스트 15/20 `--label` 최대 3줄 말줄임, 아래 13 `--label-2` kind·created 날짜. 행 전체 탭 영역 44pt 이상.
 - 주 버튼 문구는 선택 개수 실시간("1개 지우기"), 0개면 비활성 + "지울 항목을 골라 주세요".
-- **부분 선택 문제**: `payload_hash`가 "삭제할 id 목록"에 바인딩되므로 사용자가 일부를 해제하면 해시가 달라짐 → approve 본문에 선택 id를 보낼지, 재제안을 받을지 미정 **[Q15]**. 결정 전 임시안: 체크 변경 시 approve에 `selected_ids` 추가 전송을 가정하고 UI는 그대로 둠.
+- **부분 선택(확정, Q15)**: `selected_ids`는 쓰지 않음. 체크를 바꾼 뒤 주 버튼을 누르면 `POST /v1/proposals/{id}/revise` `{item_ids}` 전송 → 서버가 원래 목록의 부분집합인지 확인하고 **새 제안**(새 `action_id`·`payload_hash`·`confirm_token`)을 반환, 원래 제안은 폐기. 카드는 `revising`(= preparing 표시) → **같은 자리에서 새 제안으로 교체**(스크롤 위치 유지, 높이 보간 220ms), 새 카드는 선택한 항목만 체크된 pending. 사용자가 새 카드의 주 버튼으로 approve. 모든 항목이 체크된 채면 revise 없이 바로 approve.
 - 매칭 없음: 카드 없이 모델 답변 "찾지 못했어요" + UI가 답변 아래 텍스트 링크 "메모리 관리 열기"(→ 설정 › 메모리)를 붙임(MEM §2-4 "설정 화면 안내") **[Q16: 신호 필드]**.
 - 결과 줄: "2개 지웠어요". undo 없음(확인 카드가 이미 확인 단계).
 
@@ -247,7 +249,7 @@ API: `GET /v1/memory`, `POST /v1/memory/items`, `PATCH /v1/memory/items/{id}`(te
 설정 시트(large) 안 행 "메모리 · 23개 ›" → 시트 내부 스택 push(NATIVE 시트 내비, 뒤로 "설정", 인라인 타이틀 "메모리", 오른쪽 `+`).
 ```
 ┌──────────────────────────────────────┐
-│ 메모리 사용                     [ ● ] │  memory_enabled
+│ 메모리 사용                     [ ● ] │  memory.enabled
 └──────────────────────────────────────┘
  Eve가 대화에 참고할 정보를 기억해요. 저장할 때는 항상 먼저 물어봐요.
 
@@ -268,7 +270,7 @@ API: `GET /v1/memory`, `POST /v1/memory/items`, `PATCH /v1/memory/items/{id}`(te
 - **직접 추가(+)**: 같은 편집 화면, **항상 빈 칸**(모델·툴 출력·URL 쿼리·해시·딥링크로 prefill 금지, MEM §4 S5-H3·S5-R3). `POST /v1/memory/items`, 바로 저장(`confidence=user`). 서버 거부 이유는 입력 아래 13 `--danger`로 표시하고 입력값 유지(마스킹·자동 수정 없음): "비밀번호·키·카드번호처럼 보이는 내용은 저장할 수 없어요", "300자까지 쓸 수 있어요", "메모리가 가득 찼어요". 409(동시 수정) → "다른 곳에서 바뀌었어요. 다시 불러올게요" 후 새로고침.
 - **스와이프 삭제 + 되돌리기**: 왼쪽 스와이프 [고정/해제 (--accent)] [삭제 (--danger)], 풀 스와이프 = 삭제. 행 접힘 260ms → 토스트 "삭제됨 · 되돌리기" 2.8s, 토스트 보조 문구(처음 1회만) "백업에는 최대 7일 남아요"(MEM §7 S5-R2). **DELETE는 토스트가 사라진 뒤 지연 커밋**(THREADS §2.4와 동일, `pagehide` 시 즉시 커밋). 되돌리면 같은 위치에 다시 펼침, 서버 호출 없음.
 - 길게 누르기 컨텍스트 메뉴(NATIVE §7): 편집 · 고정 · 복사 · 삭제.
-- **끄기**(`memory_enabled=false`): 확인 액션 시트 없이 즉시 반영, 목록은 그대로 보이되 `--label-3`로 낮추고 상단 footer "꺼져 있어요. 저장된 메모리는 남아 있지만 대화에 쓰지 않아요". 끈 상태에서도 편집·삭제 가능.
+- **끄기**(`memory.enabled=false`): 확인 액션 시트 없이 즉시 반영, 목록은 그대로 보이되 `--label-3`로 낮추고 상단 footer "꺼져 있어요. 저장된 메모리는 남아 있지만 대화에 쓰지 않아요". 끈 상태에서도 편집·삭제 가능.
 - **모든 메모리 지우기**: 액션 시트 "모든 메모리를 지울까요? 백업 사본도 복구할 수 없게 돼요." / [모두 지우기](danger) / 취소. 되돌리기 없음. `DELETE /v1/memory`.
 - 내보내기: `GET /v1/memory/export` → 파일 다운로드(`eve-memory-YYYY-MM-DD.json`), iOS는 공유 시트.
 - 빈 상태: brain 44 `--label-3` + "아직 기억한 게 없어요" 17/600 + "대화 중에 '기억해'라고 하거나 + 로 직접 추가할 수 있어요" 15 `--label-2`.
@@ -283,15 +285,17 @@ API: `GET /v1/memory`, `POST /v1/memory/items`, `PATCH /v1/memory/items/{id}`(te
 ---
 
 ## Q. 열린 질문 (API·문서 공백)
+Q1·Q2·Q7·Q15는 아키텍트 답변으로 해결(본문 반영). Q3~Q6, Q8~Q14, Q16~Q18은 eve-serving docs/architecture의 UI–API 계약 문서로 답변 예정(pending).
+
 | # | 질문 | 관련 |
 |---|---|---|
-| Q1 | 메시지 조회 응답(`GET /v1/threads/:id/messages`)에 `origin`·`job_id`·`read_at` 포함 여부 | PM §3, threads-api |
-| Q2 | 스레드 목록에 `unread_count`(proactive 미읽음) 필드, 선톡 도착 시 `threads.updated_at` 갱신 여부 | PM §2.1 |
+| Q1 | ✅ 해결 → A1 | — |
+| Q2 | ✅ 해결 → A1, A3.1 | — |
 | Q3 | 출처 라벨용 job/템플릿 표시 이름(TP는 카드에 "job 이름" 표시를 요구하지만 SSE `provenance`에는 `actor`·`job_id`만 있음) | TP §3.2, §10.3 |
 | Q4 | quiet hours 종료 요약 메시지를 구분하는 표시(필드 또는 dedupe_key 규칙) | PM §4 |
 | Q5 | 스레드가 job 전용 스레드인지 알리는 필드(예: thread `job_id`/`kind`) | PM §3 |
 | Q6 | 스레드 단위 일괄 읽음 API(`POST /v1/threads/{id}/read` 등). 없으면 메시지별 POST N회 | PM §2.1 |
-| Q7 | `users.settings` 조회·수정 엔드포인트(예: `GET/PATCH /v1/settings`)와 키 경로: `settings.proactive.{enabled,quiet_start,quiet_end,daily_cap,memory_read}`, `memory_enabled`는 최상위인지 `settings.memory.enabled`인지 | PM §3, MEM §3 |
+| Q7 | ✅ 해결 → A5, B0 (`daily_cap`은 P1 제외·예약, `memory_read` 추가, `quiet_hours` 형식 확정) | — |
 | Q8 | 운영 전역 off(`GW_PROACTIVE_ENABLED`/`proactive_off`)를 UI가 알 수 있는 필드 | PM §1, §4 |
 | Q9 | 만료된 제안의 "다시 요청" 경로(새 모델 턴으로 재제안 vs 없음) | TP §3.2 |
 | Q10 | SSE confirmation에 `token_expires_at` 포함 여부(카운트다운·자동 reissue에 필요). 현재 `expires_at`만 | TP §10.3 |
@@ -299,7 +303,7 @@ API: `GET /v1/memory`, `POST /v1/memory/items`, `PATCH /v1/memory/items/{id}`(te
 | Q12 | follow-up job 생성 툴 이름과 payload_view(`when`, `thread_id`, 표시용 일시) | PM §1 |
 | Q13 | 카드의 위험 스타일 결정을 위한 `scope`(write/send/delete) SSE 노출 | TP §3 |
 | Q14 | 시크릿 필터·상한·taint 거부 시 카드 미생성 + 모델 답변인지, 카드 error인지 | MEM §2, §7 |
-| Q15 | 잊어줘 카드에서 사용자가 일부 해제할 때: approve에 `selected_ids`를 보내 서버가 부분집합 검증? 또는 재제안? (`payload_hash`는 id 목록에 바인딩) | MEM §2-4, S10-L4 |
+| Q15 | ✅ 해결 → B2, C3, C4 (`revise`) | — |
 | Q16 | "매칭 없음"을 UI가 알 신호(설정 안내 링크용) | MEM §2-4 |
 | Q17 | 메모리 읽기 전용 상태 노출 필드(`GET /v1/memory` 응답) | MEM §7 |
 | Q18 | 스레드별 "메모리 없이" 옵션의 API 필드 | MEM §3 |
@@ -307,7 +311,7 @@ API: `GET /v1/memory`, `POST /v1/memory/items`, `PATCH /v1/memory/items/{id}`(te
 ## 구현 순서 (프론트엔드)
 1. A1 데이터·폴링, A2 스레드 표시(출처 줄·시각·그룹·새 메시지 구분선)
 2. A3 배지(목록 점/pill, 뒤로 버튼, document.title)와 읽음 규칙(IntersectionObserver + outbox)
-3. A5 설정 섹션(토글·조용한 시간·하루 수) — 엔드포인트는 Q7 확정 전 mock
+3. A5 설정 섹션(토글·조용한 시간·메모리 사용) — `GET/PATCH /v1/settings`
 4. §C 공통 카드(상태 표 전부, mock SSE로) → A4 proactive variant
 5. B1·B2 카드 variant, B3 메모리 화면, B4
 6. QA: reduced-motion, VoiceOver, 오프라인, 토큰 만료·재발급 3회, 409, 두 기기 읽음 동기화, 한글 keep-all, sw 캐시 버전 올림
