@@ -74,5 +74,5 @@ window.addEventListener('popstate', e => {
 - N6. 실기기 QA 체크리스트: standalone 엣지 스와이프 vs iOS 시스템 제스처 충돌 여부(iOS 17+ 일부 버전은 standalone에서도 히스토리 스와이프 제공 — 그 경우 M2 패치가 같이 해결), 회전, 키보드 열린 채 push/pop, 백그라운드 30분 후 복귀(상태 복원).
 
 ## 보여줄 스크린샷
-- /workspace/llm-chat-test/shots/list-dark.png (라지 타이틀 목록 — 가장 "앱"다움)
-- /workspace/llm-chat-test/shots/install-dark.png (홈 화면 추가 안내 시트)
+- llm-chat-ui/tests/shots/list-dark.png (라지 타이틀 목록 — 가장 "앱"다움)
+- llm-chat-ui/tests/shots/install-dark.png (홈 화면 추가 안내 시트)

@@ -75,5 +75,5 @@ function inlineMd(s){const codes=[];s=s.replace(/`([^`\n]+)`/g,(_,c)=>`\u0000${c
 - N6. 라이트 모드에서 코드블록 헤더 `--bg-elev`와 본문 대비 낮음 → 라이트 `--code-bg:#F6F6F8`, 헤더 `#EDEDF0`.
 
 ## 보여줄 스크린샷
-- /workspace/llm-chat-test/shots/empty-dark.png
-- /workspace/llm-chat-test/shots/chat-dark.png
+- llm-chat-ui/tests/shots/empty-dark.png
+- llm-chat-ui/tests/shots/chat-dark.png
