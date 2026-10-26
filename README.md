@@ -17,9 +17,11 @@ Eve 웹 채팅 UI의 디자인 저장소예요. 디자인 사양, 리뷰 기록,
 SPEC.md            기본 디자인 사양(토큰, 컴포넌트, 채팅 UX)
 NATIVE-SPEC.md     네이티브 iOS PWA 사양(내비게이션, 전환, 세이프 에어리어)
 THREADS-SPEC.md    서버 저장 스레드 사양
+PROACTIVE-MEMORY-SPEC.md  선톡·메모리 UI와 공통 확인 카드 사양
 INTEGRATION.md     참고 구현 적용 가이드
 REVIEW.md          구현 리뷰
 REVIEW-NATIVE.md   네이티브 사양 구현 리뷰
+REVIEW-FEEDBACK.md 피드백 사유 UI 리뷰
 reference/         참고 구현(index.html, styles.css, app.js)
 logo/final/        확정 로고: 마크 SVG, 앱 아이콘, 파비콘, PWA 아이콘, TOKENS.md
 logo/              로고 시안 기록(v1–v5)
