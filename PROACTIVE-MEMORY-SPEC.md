@@ -1,7 +1,7 @@
 # PROACTIVE-MEMORY-SPEC v2: 선톡 · 메모리 · 공통 확인 카드
 
 대상: `llm-chat-ui`(Eve 웹 채팅). SPEC.md(토큰·모션), NATIVE-SPEC.md(스택 내비게이션, 시트, 컨텍스트 메뉴), THREADS-SPEC.md(목록·토스트·outbox), REVIEW-FEEDBACK.md(칩 패턴)를 그대로 따르고, 여기서는 **추가·변경만** 정의합니다.
-근거 문서: eve-serving `docs/architecture/proactive-messaging.md`(이하 PM), `docs/architecture/memory.md`(이하 MEM), `docs/tool-platform.md` §3.2·§10.3(이하 TP). 필드 이름·엔드포인트는 eve-serving `docs/architecture/ui-api-contract.md`(이하 CT, PR #12)를 따릅니다. **CT는 아직 보안 리뷰·머지 전**이므로 머지 시 바뀌면 이 문서를 다시 맞춥니다. Q1–Q18 결정은 §Q, 계약과 UI 요구가 어긋나는 곳은 §F에 모았습니다.
+근거 문서: eve-serving `docs/architecture/proactive-messaging.md`(이하 PM), `docs/architecture/memory.md`(이하 MEM), `docs/tool-platform.md` §3.2·§10.3(이하 TP). 필드 이름·엔드포인트는 eve-serving `docs/architecture/ui-api-contract.md`(이하 CT, PR #12 — **보안 리뷰 후 머지됨**)를 따릅니다. HTTP 상태 ↔ `error_code`는 CT §3.3이 기준입니다(§C3 매핑 표). Q1–Q18 결정은 §Q, 계약과 UI 요구가 어긋나는 곳은 §F에 모았습니다.
 
 구현 순서: **Part A(선톡) → §C 공통 확인 카드 → Part B(메모리)**. 카드는 A의 제안 카드에 먼저 필요하므로 A와 함께 만듭니다.
 
@@ -167,14 +167,28 @@ iOS 그룹 리스트(SPEC §6.14): 섹션 라벨 13 `--label-2`, 그룹 `--bg-el
 |---|---|---|
 | `pending` | `pending` (토큰 있음) | 버튼 2개 활성. 만료 30초 전부터 ⑥ "30초 뒤 만료" 카운트(1초 갱신, aria-live 없음) |
 | `pending·preparing` | `pending`, `token_sha256` NULL(scheduler) | 뷰포트 진입 시 `reissue` 호출 중: 주 버튼 비활성 + 스피너 14 + "준비 중…" |
-| `revising` (forget 부분 선택) | `revise` 요청 중 → 원 제안 폐기 | preparing과 같은 표시(주 버튼 비활성 + 스피너 + "준비 중…"), 체크박스 비활성. 응답의 새 제안으로 카드 교체 → `pending`. 400(부분집합 아님)·네트워크 오류 → `error`. 410 → `expired`(다시 요청 숨김) |
+| `revising` (forget 부분 선택) | `revise` 요청 중 → 원 제안 폐기 | preparing과 같은 표시(주 버튼 비활성 + 스피너 + "준비 중…"), 체크박스 비활성. 응답의 새 제안으로 카드 교체 → `pending`. 400 `invalid`(부분집합 아님)·네트워크 오류 → `error`. 409 `item_gone` → `denied`(item_gone 문구). 409 `conflict` → 저장된 결과로 전환(아래 409 행). 410 `expired` → `expired`(다시 요청 숨김) |
 | `submitting` | (approve 요청 중) → `executing` | 누른 버튼에 스피너, 두 버튼 비활성, 카드 opacity 유지(흐리게 하지 않음) |
 | `confirmed` | `executed` | 버튼 줄 → 결과 줄(220ms 높이 보간): checkmark 14 `--label-2` + 13/18 `--label-2` "저장했어요"/"2개 지웠어요"/"10월 28일 오전 9:00에 알려 드릴게요"/"실행했어요". 카드 본문은 남기되 `--label-2`로 낮춤 |
 | `declined` | `rejected` | 결과 줄 "취소했어요" `--label-3`, 본문 접힘(제목만 남긴 1줄 카드, 높이 44) |
-| `expired` | `expired` 또는 410 `action_expired` | 버튼 제거, "시간이 지나 취소됐어요" `--label-3` + 오른쪽 텍스트 버튼 "다시 요청"(CT Q9) → `POST /v1/proposals/{id}/revise`에 **원래와 같은 `item_ids`**(add 제안은 빈 본문) → 새 제안으로 같은 자리 교체(`revising` 표시). **`item_ids`가 없는 제안(tool·proactive·remember)도 빈 본문 revise로 같은 내용이 재발급됩니다**(§F-5 해결). 새 모델 턴·컴포저 prefill 없음. **"다시 요청"을 숨기는 경우는 410뿐**: 원 제안이 처음 만들어진 지 24시간이 지나면 서버가 410을 주고, 그때 "다시 요청"을 없애고 "시간이 지나 취소됐어요"만 남깁니다(400 숨김 폴백·횟수 상한 없음). 다시 요청 중 네트워크 오류는 버튼 유지 + 재시도 가능. 이와 별개로, 토큰만 만료(`token_expires_at`)이고 제안은 유효 → 자동으로 `reissue` 후 pending 유지(**자동 재발급은 카드당 3회 상한**, 넘으면 expired 표시 + "다시 요청" 노출) |
-| `denied` (CT Q14) | SSE confirmation `status:"denied"`, `error_code`, 본문 없음 | 처음부터 결과 줄만 있는 1줄 카드: exclamationmark.circle `--label-2` + 문구를 `error_code`로 결정 (§F-4 해결). **`summary` 없음**(제목·본문·payload 표시 안 함). 코드별 고정 문구(서버 문자열·내부 정보 표시 금지, 텍스트로만):<br>`secret_detected` "비밀번호나 키처럼 보여서 진행하지 않았어요"<br>`cap_exceeded` "허용된 한도를 넘어서 진행하지 않았어요"<br>`tainted` "외부 내용이 섞인 요청이라 진행하지 않았어요"<br>`scope_denied` "이 작업은 할 수 있는 권한이 없어요"<br>`expired` "시간이 지나 진행하지 않았어요"<br>`not_found` "대상을 찾을 수 없어요"<br>`kill_switch` "지금은 이 기능을 쓸 수 없어요"<br>`invalid` "요청 내용이 올바르지 않아 진행하지 않았어요"<br>그 외·없음 → "진행하지 않았어요". 버튼·재시도 없음. 모델 답변은 따로 이어짐 |
-| `error` | `failed`, 네트워크 오류, 422 `payload_mismatch`, 403 `not_owner` | exclamationmark.circle `--danger` + 13 `--label-2` 이유("실행하지 못했어요"/"내용이 바뀌어 실행하지 않았어요"/"연결이 끊겼어요") + [다시 시도](네트워크 오류일 때만; 422·403·failed는 재시도 없음) |
-| (409 `action_already_decided`) | 저장된 결과 | 다른 기기에서 처리됨 → 해당 결과 상태로 바로 전환, 토스트 없음 |
+| `expired` | `expired` 또는 410 `expired` (CT §3.3) | 버튼 제거, "시간이 지나 취소됐어요" `--label-3` + 오른쪽 텍스트 버튼 "다시 요청"(CT Q9) → `POST /v1/proposals/{id}/revise`에 **원래와 같은 `item_ids`**(add 제안은 빈 본문) → 새 제안으로 같은 자리 교체(`revising` 표시). **`item_ids`가 없는 제안(tool·proactive·remember)도 빈 본문 revise로 같은 내용이 재발급됩니다**(§F-5 해결). 새 모델 턴·컴포저 prefill 없음. **"다시 요청"을 숨기는 경우는 410뿐**: 원 제안이 처음 만들어진 지 24시간이 지나면 서버가 410을 주고, 그때 "다시 요청"을 없애고 "시간이 지나 취소됐어요"만 남깁니다(400 숨김 폴백·횟수 상한 없음). 다시 요청 중 네트워크 오류는 버튼 유지 + 재시도 가능. 이와 별개로, 토큰만 만료(`token_expires_at`)이고 제안은 유효 → 자동으로 `reissue` 후 pending 유지(**자동 재발급은 카드당 3회 상한**, 넘으면 expired 표시 + "다시 요청" 노출) |
+| `denied` (CT Q14) | SSE confirmation `status:"denied"`, `error_code`, 본문 없음 | 처음부터 결과 줄만 있는 1줄 카드: exclamationmark.circle `--label-2` + 문구를 `error_code`로 결정 (§F-4 해결). **`summary` 없음**(제목·본문·payload 표시 안 함). 코드별 고정 문구(서버 문자열·내부 정보 표시 금지, 텍스트로만):<br>`secret_detected` "비밀번호나 키처럼 보여서 진행하지 않았어요"<br>`cap_exceeded` "허용된 한도를 넘어서 진행하지 않았어요"<br>`tainted` "외부 내용이 섞인 요청이라 진행하지 않았어요"<br>`scope_denied` "이 작업은 할 수 있는 권한이 없어요"<br>`expired` "시간이 지나 진행하지 않았어요"<br>`not_found` "대상을 찾을 수 없어요"<br>`kill_switch` "지금은 이 기능을 쓸 수 없어요"<br>`invalid` "요청 내용이 올바르지 않아 진행하지 않았어요"<br>`item_gone` "그사이 항목이 삭제돼 진행하지 않았어요"<br>`conflict` "이미 처리된 요청이에요"<br>그 외·없음 → "진행하지 않았어요". 버튼·재시도 없음. 모델 답변은 따로 이어짐 |
+| `error` | `failed`, 네트워크 오류, 400 `invalid`(HTTP 응답일 때) | exclamationmark.circle `--danger` + 13 `--label-2` 이유("실행하지 못했어요"/"연결이 끊겼어요") + [다시 시도](네트워크 오류일 때만; 4xx·failed는 재시도 없음). HTTP 403(`scope_denied`/`tainted`/`kill_switch`)·404 `not_found`·422(`secret_detected`/`cap_exceeded`)는 `denied`와 같은 코드별 고정 문구로 표시 |
+| (409 `conflict`) | 저장된 결과 | 다른 기기에서 이미 approve·void됨 → 결과를 다시 불러와 그 상태로 바로 전환, 토스트 없음. 결과를 못 불러오면 `denied` + "이미 처리된 요청이에요" |
+
+**HTTP ↔ `error_code` 매핑 (CT §3.3 기준, 10개)**
+
+| HTTP | `error_code` | UI |
+|---|---|---|
+| 400 | `invalid` | error(재시도 없음) / SSE면 denied |
+| 403 | `scope_denied` / `tainted` / `kill_switch` | denied 고정 문구 |
+| 404 | `not_found` | denied 고정 문구 (다른 사용자 것도 동일 본문) |
+| 409 | `item_gone` | denied 고정 문구 |
+| 409 | `conflict` | 저장된 결과로 전환, 실패 시 denied 문구 |
+| 410 | `expired` | expired, "다시 요청" 숨김 |
+| 422 | `secret_detected` / `cap_exceeded` | denied 고정 문구 |
+
+SSE 거부 카드는 같은 `error_code`만 씁니다(HTTP 없음). **이전 사양과의 충돌(CT 우선으로 정리)**: 옛 이름 `action_expired`→`expired`, `action_already_decided`→`conflict`. `payload_mismatch`(422)·`not_owner`(403)는 CT에 없어 삭제 — 다른 사용자 제안은 403이 아니라 404 `not_found`. 메모리 직접 편집의 409(동시 수정, B 화면)는 proposals API가 아니라 CT §3.3 밖이므로 기존 문구를 유지합니다.
 | `pending·offline` | — | 주 버튼 비활성 + ⑥ "연결되면 확인할 수 있어요". approve는 **outbox에 넣지 않음**(토큰이 짧고 1회용) |
 
 - 새로고침/재진입: `GET /v1/actions?status=pending`으로 카드 복원(토큰 없음) → 뷰포트 진입 시 `reissue`로 토큰 받기(= preparing 상태).
@@ -291,7 +305,7 @@ API: `GET /v1/memory`, `POST /v1/memory/items`, `PATCH /v1/memory/items/{id}`(te
 ---
 
 ## Q. 결정 목록 (CT 기준)
-모든 질문이 CT(eve-serving PR #12 `docs/architecture/ui-api-contract.md`)로 정리됐습니다. **CT는 보안 리뷰·머지 대기 중**이며, 바뀌면 이 표를 갱신합니다.
+모든 질문이 CT(eve-serving PR #12 `docs/architecture/ui-api-contract.md`)로 정리됐습니다. **CT는 보안 리뷰를 거쳐 머지됐습니다**(eve-serving 16887e7).
 
 | # | 결정 | 반영 |
 |---|---|---|
@@ -308,18 +322,18 @@ API: `GET /v1/memory`, `POST /v1/memory/items`, `PATCH /v1/memory/items/{id}`(te
 | Q11 | `payload_view: {op, items:[{id?, text, kind, updated_at}], ambiguous}` + 후보 `updated_at` | B1, B2 |
 | Q12 | 툴 `proactive.propose_followup`, `payload_view: {when:{at}, thread_id, display, template_id}` | C2, C4 |
 | Q13 | SSE confirmation `scopes`, danger는 send·delete만 | C1, C2, C4 |
-| Q14 | 거부 = 카드 `status:"denied"` + `error_code`(8개 확정), summary 없음 | C3, B1 |
+| Q14 | 거부 = 카드 `status:"denied"` + `error_code`(10개 확정, CT §3.3), summary 없음 | C3, B1 |
 | Q15 | `revise {item_ids}` 부분집합, 새 제안으로 교체 | B2, C3 |
 | Q16 | **보류(P1 밖)** — 매칭 없음 = 카드 없음. 확장안: SSE `tool_result` `status:"no_match"`(MINOR) | B2에서 링크 제거 |
 | Q17 | `system.memory_read_only` | B3 |
 | Q18 | **보류(P1 밖)** — 스레드별 메모리 끄기. 확장안: `threads.settings` `{"memory":false}` 또는 `PATCH /v1/threads/{id}` | B3에서 UI 제거 |
 
 ## F. 계약에 대한 피드백 — 모두 해결됨
-아키텍트 답변으로 6개 모두 확정(CT PR #12에 반영 중, 보안 리뷰·머지 대기).
+아키텍트 답변으로 6개 모두 확정(CT PR #12에 반영, 머지됨).
 1. ✅ **위험 스타일(Q13)**: danger는 send scope와 삭제에만, write는 primary(파랑). → C1, C2, C4
 2. ✅ **원 스레드 없는 선톡(Q5)**: 첫 실행 때 `job_name` 제목으로 새 스레드 생성, 이후 재사용(`scheduled_jobs.thread_id`). 목록은 일반 미읽음 규칙만. → A1
 3. ✅ **잊어줘 후보 날짜(Q11)**: 후보에 `updated_at` 포함, 행 메타 줄에 13 `--label-2` 짧은 날짜. → B2
-4. ✅ **denied 카드(Q14)**: summary 없음. `error_code` 8개 확정, 코드별 고정 문구. 옛 코드(`too_long`, `tainted_thread`) 삭제. → C3, B1
+4. ✅ **denied 카드(Q14)**: summary 없음. `error_code` 10개 확정, 코드별 고정 문구. 옛 코드(`too_long`, `tainted_thread`) 삭제. → C3, B1
 5. ✅ **revise 범위(Q9)**: item_ids 없는 제안도 빈 본문 revise로 재발급. 처음 만든 지 24시간 뒤 410일 때만 "다시 요청" 숨김. 400 숨김 폴백·3회 상한 삭제(토큰 자동 재발급 3회 상한은 별도 유지). → C3
 6. ✅ **출처 아이콘(Q3)**: Message `template_kind`(briefing/watch/followup). sun.horizon / eye / arrow.uturn.forward, 그 외 sparkle. → A1, A2
 
@@ -329,4 +343,4 @@ API: `GET /v1/memory`, `POST /v1/memory/items`, `PATCH /v1/memory/items/{id}`(te
 3. A5 설정 섹션(토글·조용한 시간·메모리 사용) — `GET/PATCH /v1/settings`
 4. §C 공통 카드(상태 표 전부, mock SSE로) → A4 proactive variant
 5. B1·B2 카드 variant, B3 메모리 화면, B4
-6. QA: reduced-motion, VoiceOver, 오프라인, 토큰 자동 재발급 3회·revise 410, denied 8개 문구, 409, 두 기기 읽음 동기화, 한글 keep-all, sw 캐시 버전 올림
+6. QA: reduced-motion, VoiceOver, 오프라인, 토큰 자동 재발급 3회·revise 410, denied 10개 문구, 409 `item_gone`·`conflict`, 두 기기 읽음 동기화, 한글 keep-all, sw 캐시 버전 올림
