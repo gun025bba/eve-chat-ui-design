@@ -1,6 +1,6 @@
 # NATIVE-SPEC v1 — 홈 화면 PWA를 "진짜 iOS 앱"처럼
 
-대상: `/workspace/llm-chat-ui/` (sw `llmchat-v5`). SPEC.md 토큰/모션 그대로 사용. 기술 기반(standalone 감지, 키보드/visualViewport, manifest, SW)은 프론트 봇이 진행 중이므로 여기서는 **조율에 필요한 부분만** 언급합니다.
+대상: `llm-chat-ui/` (sw `llmchat-v5`). SPEC.md 토큰/모션 그대로 사용. 기술 기반(standalone 감지, 키보드/visualViewport, manifest, SW)은 프론트 봇이 진행 중이므로 여기서는 **조율에 필요한 부분만** 언급합니다.
 
 ## 0. 결정: 탭 바 없음, 내비게이션 스택만 사용
 **결정:** `대화 목록(루트) → 채팅(push)` 2단 스택 + 설정은 **시트**. 탭 바(대화/설정)는 만들지 않습니다.
@@ -208,7 +208,7 @@ iOS 웹은 `navigator.vibrate` 미지원 → **시각적 피드백 + 예외적 �
 - 링크: 답변 속 외부 링크는 standalone에서 앱 밖(Safari)으로 열림 → `target="_blank"` 유지(현재 OK). 앱 내부 이동은 링크 대신 버튼으로.
 - 실행 깜빡임 방지: `<html style="background:#000">` 인라인 + `<meta name="color-scheme" content="dark light">`, CSS 로드 전 흰 화면 방지. 초기 렌더는 상태 복원 후 `#app`에 `.ready` 클래스 → 그때 200ms 페이드인(스플래시 → 앱이 끊김 없이).
 - **상태 복원**: `LS.current`(이미 있음) + 추가로 `route`, `#messages.scrollTop`, 컴포저 초안(`draft:<id>`)을 `visibilitychange(hidden)`/`pagehide`에서 저장. iOS는 백그라운드 PWA를 자주 종료하므로 재실행 시 같은 대화·같은 스크롤·초안을 그대로 복원.
-- 오프라인: `navigator.onLine`/fetch 실패 시 내비게이션 바 아래 **얇은 배너**(32px, `--bg-elev`, 13px “오프라인 — Tailscale 연결을 확인하세요”, wifi.slash 아이콘) 슬라이드 다운 280ms. 컴포저는 비활성화하지 않고 보낼 때 오류 처리(기존 재시도).
+- 오프라인: `navigator.onLine`/fetch 실패 시 내비게이션 바 아래 **얇은 배너**(32px, `--bg-elev`, 13px “오프라인 — 네트워크 연결을 확인하세요”, wifi.slash 아이콘) 슬라이드 다운 280ms. 컴포저는 비활성화하지 않고 보낼 때 오류 처리(기존 재시도).
 
 ## 11. 홈 화면 추가 안내 시트
 **조건:** iOS Safari + 비 standalone (`!(matchMedia('(display-mode: standalone)').matches || navigator.standalone)`) + 아직 닫지 않음 + 두 번째 방문 또는 첫 대화 완료 후(첫 실행에 바로 띄우지 않음).
@@ -287,7 +287,7 @@ if (iOS && !standalone && Date.now() - d > 30 * 864e5 && +localStorage.getItem('
 - standalone에는 뒤로/새로고침 버튼 없음 → 앱 내 뒤로가기와 "당겨서 새로고침"이 없으면 멈춘 것처럼 느껴질 수 있음 (오류 화면에 "다시 시도" 버튼 필수).
 - 스토리지: PWA와 Safari 탭은 **저장소가 분리**됨 → 홈 화면 앱에서 API 키·대화를 다시 설정해야 함. 설치 안내 시트에 이 사실 한 줄 표시. 오랫동안 안 쓰면(7일 정책) Safari 탭 데이터는 지워질 수 있지만 홈 화면 앱은 예외.
 - 백그라운드로 가면 스트리밍 fetch가 몇 초 내 중단될 수 있음 → 복귀 시(`visibilitychange`) 끊긴 답변에 "이어서 생성" 버튼 표시.
-- 서비스워커/오프라인 캐시는 HTTPS에서만(현재 HTTP :8000이면 캐시 없음) → `tailscale serve` HTTPS 주소로 설치 권장. 설치한 주소(origin)가 바뀌면 저장소도 새로 시작.
+- 서비스워커/오프라인 캐시는 HTTPS에서만(현재 HTTP :8000이면 캐시 없음) → HTTPS 리버스 프록시 주소로 설치 권장. 설치한 주소(origin)가 바뀌면 저장소도 새로 시작.
 - 푸시 알림은 iOS 16.4+에서 홈 화면 앱만 가능(이번 범위 외).
 - `startViewTransition`은 iOS 18+ Safari. 그 이전은 CSS 폴백.
 - 외부 링크는 Safari로 빠져나감(앱 내 브라우저 없음).

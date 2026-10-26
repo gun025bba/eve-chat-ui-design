@@ -1,4 +1,4 @@
-# 디자인·코드 리뷰 — /workspace/llm-chat-ui (SPEC v1 대비)
+# 디자인·코드 리뷰 — llm-chat-ui/ (SPEC v1 대비)
 
 **총평: 통과(조건부).** 토큰·컴포넌트·모션·Safari 대응이 스펙과 거의 1:1로 반영됨. 스크린샷(shots/*-dark.png) 기준 프리미엄 톤 달성. XSS 안전, sw 캐시 v4 + network-first OK. 아래 Must 2건만 고치고 배포 권장.
 

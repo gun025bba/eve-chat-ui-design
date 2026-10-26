@@ -1,4 +1,4 @@
-# 기존 앱(/workspace/llm-chat-ui/) 적용 가이드
+# 기존 앱(llm-chat-ui/) 적용 가이드
 스택: no-build vanilla (index.html/styles.css/app.js/sw.js/manifest), 게이트웨이 `/ui` 정적 마운트(~/llm-serving/web). 문서상 접속: README 참조(`:8000/ui/`).
 
 순서 (클래스/ID는 기존 유지):

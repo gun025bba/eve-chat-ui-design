@@ -1,6 +1,6 @@
 # LLM Chat UI — 디자인 스펙 v1 (Apple 스타일, 다크 우선)
 
-대상: `/workspace/llm-chat-ui/` (no-build vanilla, iPhone Safari, `/ui/` 서빙). 클래스명/ID는 **기존 코드 그대로** 유지하고 스타일·마크업 일부만 보강합니다. 레퍼런스 구현: `reference/` (index.html, styles.css, app.js — mock 모드 포함).
+대상: `llm-chat-ui/` (no-build vanilla, iPhone Safari, `/ui/` 서빙). 클래스명/ID는 **기존 코드 그대로** 유지하고 스타일·마크업 일부만 보강합니다. 레퍼런스 구현: `reference/` (index.html, styles.css, app.js — mock 모드 포함).
 
 ## 0. 원칙
 1. **콘텐츠가 주인공** — 크롬(헤더/입력창)은 반투명·얇게, 답변 텍스트가 화면을 지배.
@@ -192,7 +192,7 @@
 | 칩 stagger | 280ms + 40ms×i | ease-out |
 | 헤더 hairline | 180ms | linear |
 
-## 9. 현재 코드 리뷰 (`/workspace/llm-chat-ui/`)
+## 9. 현재 코드 리뷰 (`llm-chat-ui/`)
 1. 유니코드 아이콘(☰ ＋ ↑ ■ ⚙︎) → 플랫폼별 렌더 차이, 저렴해 보임. SVG로.
 2. `--user:#2563eb` Tailwind 블루 + 어시스턴트 회색 버블 → "채팅앱" 느낌. 어시스턴트 버블 제거, 사용자 버블 중립색.
 3. 다크 배경 `#111214`, 테두리 `#2a2c31` 다수(topbar/composer border) → 선 과다. hairline+블러로.
