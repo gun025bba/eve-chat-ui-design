@@ -154,7 +154,7 @@ function regenerate() {
 }
 
 async function* mockStream(signal) {
-  const txt = '<think>사용자의 요청을 정리하고 예시 코드를 준비한다.</think>좋아요! 간단한 예시를 보여드릴게요.\n\n**핵심 포인트**\n- 시스템 폰트와 넉넉한 여백\n- 부드러운 `스트리밍` 표시\n- 다크 모드 우선\n\n```js\nconst greet = name => `Hello, ${name}!`;\nconsole.log(greet("Mac Studio"));\n```\n\n더 궁금한 점이 있으면 말씀해 주세요.';
+  const txt = '<think>사용자의 요청을 정리하고 예시 코드를 준비한다.</think>좋아요! 간단한 예시를 보여드릴게요.\n\n**핵심 포인트**\n- 시스템 폰트와 넉넉한 여백\n- 부드러운 `스트리밍` 표시\n- 다크 모드 우선\n\n```js\nconst greet = name => `Hello, ${name}!`;\nconsole.log(greet("World"));\n```\n\n더 궁금한 점이 있으면 말씀해 주세요.';
   await new Promise(r => setTimeout(r, 700));
   for (let i = 0; i < txt.length;) { if (signal.aborted) return; const n = 1 + (Math.random() * 4 | 0); yield txt.slice(i, i += n); await new Promise(r => setTimeout(r, 28)); }
 }
