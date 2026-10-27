@@ -27,11 +27,11 @@
 ## A1. 데이터 (PM §2.1·§3 기준)
 - 선톡 메시지 = `messages.role='assistant'` 이고 `origin='proactive'`. 추가 필드 `job_id`, `read_at`, `push_status`.
 - 위치(CT Q5, §F-2 해결): **P1에는 job 전용 스레드 종류가 없습니다.** 원 스레드가 있으면(follow-up 등) 그 `thread_id`에 들어갑니다. 원 스레드가 없는 선톡(브리핑·watch)은 **첫 실행 때 서버가 `job_name`을 제목으로 새 스레드를 만들고**, 이후 실행은 그 스레드를 재사용합니다(`scheduled_jobs.thread_id`). 목록에서는 일반 스레드와 똑같이 다루고 미읽음 규칙(A3)만 적용합니다. 별도 아이콘·섹션·빈 상태 없음.
-- in-app 알림 = `GET /v1/notifications`(origin='proactive' AND read_at IS NULL), 읽음 = `POST /v1/messages/{id}/read`.
+- in-app 미읽음 = `GET /v1/threads?unread=true`(CT §3.5.2, `/v1/notifications`는 없음). 읽음 = `POST /v1/threads/{id}/read`(스레드 전체) 또는 `POST /v1/messages/{id}/read`.
 - UI 갱신: 앱 열기, `visibilitychange→visible`, 포그라운드 60초 주기 폴링(PM §2.1, SSE는 TBD). 오프라인이면 폴링 중단.
 - 메시지 필드(확정, Q1): `origin`(`user`|`assistant`|`proactive`), `job_id`(선톡일 때만, 그 외 null), `read_at`(null이면 미읽음).
 - 추가 필드(CT Q3·Q4): `provenance: {actor:"scheduler", job_id, job_name}`(`job_name`은 서버 고정 템플릿 `display_name`), `kind`: `null`(일반) | `digest`(quiet hours 종료 요약). **모르는 `kind` 값은 `null`처럼 처리.**
-- `template_kind`(§F-6 해결): `briefing` | `watch` | `followup` | `null`. 출처 줄 아이콘을 고르는 데만 씁니다(A2).
+- `template_kind`(§F-6 해결, CT Q20): `briefing` | `watch` | `followup` | `null`. **Message 최상위 필드**(`origin`·`job_id`·`kind`와 같은 레벨)이며 `provenance` 안에는 없습니다(`provenance`는 `{actor, job_id, job_name}`만). 읽기: `m.template_kind`(❌ `m.provenance.template_kind`). 출처 줄 아이콘을 고르는 데만 씁니다(A2).
 - 스레드 목록 필드(확정, Q2): 서버가 계산한 `unread_count`. 선톡이 도착하면 `threads.updated_at`이 갱신되고, 목록 정렬은 `updated_at` 기준.
 
 ## A2. 스레드 안 표시
@@ -144,7 +144,7 @@ iOS 그룹 리스트(SPEC §6.14): 섹션 라벨 13 `--label-2`, 그룹 `--bg-el
 │ “아침 브리핑은 한국어로 짧게 받는 걸 선호”    │  ④ 본문: variant별 (C2). 17/1.55 기본, payload_view를 그대로 텍스트로
 │                                           │
 │ [   취소   ]           [   저장   ]        │  ⑤ 버튼 줄: 2개, 각 flex 1, 높이 44, r10, 15/600, 간격 8
-│ 2분 뒤 만료                                 │  ⑥ 메타 줄 11/13 --label-3 (만료 임박 30초부터 표시)
+│ 연결되면 확인할 수 있어요                   │  ⑥ 메타 줄 11/13 --label-3 (offline·checking·forget 안내 때만. 만료 카운트다운 없음)
 └───────────────────────────────────────────┘
 ```
 - 배치: 어시스턴트 메시지 `.bubble` 아래 12px, 본문 폭 전체(최대 720). 메시지당 카드 여러 개면 12px 간격 세로 나열.
@@ -158,7 +158,23 @@ iOS 그룹 리스트(SPEC §6.14): 섹션 라벨 13 `--label-2`, 그룹 `--bg-el
 | `remember` | brain(또는 bookmark) | 메모리에 저장할까요? | 정규화된 최종 텍스트 따옴표 인용 17/1.55 + 아래 kind 칩 13 `--label-2`(`선호`·`사실`·`프로필`·`할 일 · 30일 뒤 만료`) | 저장 | 취소 | accent |
 | `forget` | trash | 메모리에서 지울까요? | 매칭 항목 체크 목록 (B2) | N개 지우기 | 취소 | **danger** |
 | `proactive` | bell.badge / calendar.badge.clock | 다시 알려 드릴까요? | `summary` 17 + 일시 줄 15 `--label-2` = `payload_view.display` 그대로(서버가 Asia/Seoul로 만든 문자열, CT Q12; `when.at`은 `<time datetime>`에만) + 위치 "이 대화에서" | 알림 예약 | 괜찮아요 | accent |
-| `tool` | 툴 manifest 아이콘, 없으면 wrench | `summary` 그대로 (예 "10/28 15:00 치과 일정 추가") | `payload_view` 키·값 표: 키 13 `--label-2` / 값 15 `--label`, 행 hairline, 최대 6행 + "모두 보기"(시트) | 실행 (툴 정의 동사 우선, 예 "추가") | 취소 | write=accent / send·delete=danger |
+| `tool` | 툴 manifest 아이콘, 없으면 wrench | `summary` 그대로 (예 "10/28 15:00 치과 일정 추가") | `payload_view` 키·값 표: 키 13 `--label-2` / 값 15 `--label`, 행 hairline, 최대 6행 + "모두 보기"(시트) | `payload_view.verb` 매핑(C2.1) | 취소 | scopes로 결정: write=accent / send·delete=danger |
+
+### C2.1 tool 주 버튼 = `payload_view.verb` (CT Q19)
+서버가 툴 매니페스트의 정적 `verb`로만 채우는 고정 enum입니다(모델·툴 인자로 못 바꿈, 자유 텍스트 label 없음).
+
+| verb | 버튼 | 결과 줄 (`confirmed`) |
+|---|---|---|
+| `add` | 추가 | 추가했어요 |
+| `update` | 변경 | 변경했어요 |
+| `send` | 보내기 | 보냈어요 |
+| `delete` | 삭제 | 삭제했어요 |
+| `run` | 실행 | 실행했어요 |
+| 없음·모르는 값 | → `run`으로 처리 | 실행했어요 |
+
+- 매핑은 `tool` variant에만 적용. 메모리·선톡 variant는 더 구체적인 동사를 유지: `remember` "저장", `forget` "N개 지우기", `proactive` "알림 예약".
+- **위험 스타일은 verb가 아니라 scopes(CT Q13)**: send 스코프 또는 delete(`payload_view.op==='delete'`·delete 스코프) → danger, 그 외(write) → accent. verb=`delete`인데 scopes에 delete가 없으면 accent(서버 CI가 일치를 보장하므로 실제로는 드묾).
+- 서버 문자열을 버튼에 쓰지 않음. `textContent`로만.
 
 버튼 문구 규칙: 주 버튼은 **동사**(저장·지우기·예약·추가·보내기), "확인/예" 금지. 보조는 "취소"(proactive만 "괜찮아요"). 파괴적이면 개수 포함("2개 지우기").
 
@@ -170,14 +186,14 @@ iOS 그룹 리스트(SPEC §6.14): 섹션 라벨 13 `--label-2`, 그룹 `--bg-el
 | `checking` | approve 응답 유실(네트워크 오류) | 서버에서 실행됐을 수 있으므로 **approve를 다시 보내지 않음**. 주 버튼 "확인 중…"(스피너) + ⑥ "결과를 확인하는 중이에요" → `GET /v1/actions/{id}`로 백오프 재조회(최대 6회) → 결과 상태로 전환. 끝내 모르면 `error` "결과를 확인하지 못했어요. 연결되면 다시 확인할게요" + [다시 확인] |
 | `revising` (forget 부분 선택) | `revise` 요청 중 → 원 제안 폐기 | 주 버튼 비활성 + 스피너 + "준비 중…", 체크박스 비활성. 응답의 새 제안으로 카드 교체 → `pending`. 400 `invalid`(부분집합 아님)·네트워크 오류 → `error`. 409 `item_gone` → `denied`(item_gone 문구). 409 `conflict` → 저장된 결과로 전환(아래 409 행). 410 `expired` → `expired`(다시 요청 숨김) |
 | `submitting` | (approve 요청 중) → `executing` | 누른 버튼에 스피너, 두 버튼 비활성, 카드 opacity 유지(흐리게 하지 않음) |
-| `confirmed` | `executed` | 버튼 줄 → 결과 줄(220ms 높이 보간): checkmark 14 `--label-2` + 13/18 `--label-2` "저장했어요"/"2개 지웠어요"/"10월 28일 오전 9:00에 알려 드릴게요"/"실행했어요". 카드 본문은 남기되 `--label-2`로 낮춤 |
+| `confirmed` | `executed` | 버튼 줄 → 결과 줄(220ms 높이 보간): checkmark 14 `--label-2` + 13/18 `--label-2` "저장했어요"/"2개 지웠어요"/"10월 28일 오전 9:00에 알려 드릴게요"/tool은 verb별(C2.1). 카드 본문은 남기되 `--label-2`로 낮춤 |
 | `declined` | `rejected` | 결과 줄 "취소했어요" `--label-3`, 본문 접힘(제목만 남긴 1줄 카드, 높이 44) |
 | `expired` | `expired` 또는 410 `expired` (CT §3.3) | 버튼 제거, "시간이 지나 취소됐어요" `--label-3` + 오른쪽 텍스트 버튼 "다시 요청"(CT Q9) → `POST /v1/proposals/{id}/revise`에 **원래와 같은 `item_ids`**(add 제안은 빈 본문) → 새 제안으로 같은 자리 교체(`revising` 표시). **`item_ids`가 없는 제안(tool·proactive·remember)도 빈 본문 revise로 같은 내용이 재발급됩니다**(§F-5 해결). 새 모델 턴·컴포저 prefill 없음. **"다시 요청"을 숨기는 경우는 410뿐**: 원 제안이 처음 만들어진 지 24시간이 지나면 서버가 410을 주고, 그때 "다시 요청"을 없애고 "시간이 지나 취소됐어요"만 남깁니다(400 숨김 폴백·횟수 상한 없음). 다시 요청 중 네트워크 오류는 버튼 유지 + 재시도 가능. 토큰 카운트다운·자동 재발급은 없습니다(토큰은 누를 때 발급, CT §3.5.4) |
-| `denied` (CT Q14) | SSE confirmation `status:"denied"`, `error_code`, 본문 없음 | 처음부터 결과 줄만 있는 1줄 카드: exclamationmark.circle `--label-2` + 문구를 `error_code`로 결정 (§F-4 해결). **`summary` 없음**(제목·본문·payload 표시 안 함). 코드별 고정 문구(서버 문자열·내부 정보 표시 금지, 텍스트로만):<br>`secret_detected` "비밀번호나 키처럼 보여서 진행하지 않았어요"<br>`cap_exceeded` "허용된 한도를 넘어서 진행하지 않았어요"<br>`tainted` "외부 내용이 섞인 요청이라 진행하지 않았어요"<br>`scope_denied` "이 작업은 할 수 있는 권한이 없어요"<br>`expired` "시간이 지나 진행하지 않았어요"<br>`not_found` "대상을 찾을 수 없어요"<br>`kill_switch` "지금은 이 기능을 쓸 수 없어요"<br>`invalid` "요청 내용이 올바르지 않아 진행하지 않았어요"<br>`item_gone` "그사이 지워진 항목이 있어서 진행하지 않았어요"<br>`conflict` "이미 처리된 요청이에요"(가능하면 결과를 다시 불러와 그 상태로 전환)<br>`payload_mismatch` "내용이 바뀌어서 진행하지 않았어요"<br>그 외·없음 → "진행하지 않았어요". 버튼·재시도 없음. 모델 답변은 따로 이어짐 |
+| `denied` (CT Q14) | SSE confirmation `status:"denied"`, `error_code`, 본문 없음 | 처음부터 결과 줄만 있는 1줄 카드: exclamationmark.circle `--label-2` + 문구를 `error_code`로 결정 (§F-4 해결). **`summary` 없음**(제목·본문·payload 표시 안 함). 코드별 고정 문구(서버 문자열·내부 정보 표시 금지, 텍스트로만):<br>`secret_detected` "비밀번호나 키처럼 보여서 진행하지 않았어요"<br>`cap_exceeded` "허용된 한도를 넘어서 진행하지 않았어요"<br>`tainted` "외부 내용이 섞인 요청이라 진행하지 않았어요"<br>`scope_denied` "이 작업은 할 수 있는 권한이 없어요"<br>`expired` "시간이 지나 진행하지 않았어요"<br>`not_found` "대상을 찾을 수 없어요"<br>`kill_switch` "지금은 이 기능을 쓸 수 없어요"<br>`invalid` "요청 내용이 올바르지 않아 진행하지 않았어요"<br>`item_gone` "그사이 지워진 항목이 있어서 진행하지 않았어요"<br>`conflict` "이미 처리된 요청이에요"(가능하면 결과를 다시 불러와 그 상태로 전환)<br>`payload_mismatch` "내용이 바뀌어서 진행하지 않았어요"<br>모르는 코드·없음 → `invalid` 문구 "요청 내용이 올바르지 않아 진행하지 않았어요"(CT Q14). 버튼·재시도 없음. 모델 답변은 따로 이어짐 |
 | `error` | `failed`, 네트워크 오류, 400 `invalid`(HTTP 응답일 때) | exclamationmark.circle `--danger` + 13 `--label-2` 이유("실행하지 못했어요"/"연결이 끊겼어요") + [다시 시도](네트워크 오류일 때만; 4xx·failed는 재시도 없음). HTTP 403(`scope_denied`/`tainted`/`kill_switch`)·404 `not_found`·422(`secret_detected`/`cap_exceeded`)는 `denied`와 같은 코드별 고정 문구로 표시 |
 | (409 `conflict`) | 저장된 결과 | 다른 기기에서 이미 approve·void됨 → 결과를 다시 불러와 그 상태로 바로 전환, 토스트 없음. 결과를 못 불러오면 `denied` + "이미 처리된 요청이에요" |
 
-**HTTP ↔ `error_code` 매핑 (CT §3.3 기준, 11개)**
+**HTTP ↔ `error_code` 매핑 (CT §3.3 기준, 카드 거부 11개 + 500·503)**
 
 | HTTP | `error_code` | UI |
 |---|---|---|
@@ -188,6 +204,8 @@ iOS 그룹 리스트(SPEC §6.14): 섹션 라벨 13 `--label-2`, 그룹 `--bg-el
 | 409 | `conflict` | 저장된 결과로 전환, 실패 시 denied 문구 |
 | 410 | `expired` | expired, "다시 요청" 숨김 |
 | 422 | `secret_detected` / `cap_exceeded` / `payload_mismatch` | denied 고정 문구 |
+| 500 | `internal_error` | 메모리 쓰기 중 감사 기록 실패(fail-closed). error "저장하지 못했어요. 잠시 후 다시 시도해 주세요" + [다시 시도] |
+| 503 | `memory_read_only` | 메모리 읽기 전용. 카드면 denied "지금은 메모리를 바꿀 수 없어요", 메모리 화면이면 B3 읽기 전용 배너로 전환 + `GET /v1/settings` 다시 읽기 |
 
 SSE 거부 카드는 같은 `error_code`만 씁니다(HTTP 없음). **이전 사양과의 충돌(CT 우선으로 정리)**: 옛 이름 `action_expired`→`expired`, `action_already_decided`→`conflict`. `payload_mismatch`(422)는 CT §3.3에 MINOR로 추가돼 유지(본문은 코드만). `not_owner`(403)는 CT에 없어 삭제. 분기는 HTTP 상태가 아니라 본문 `error_code`로 하고, 모르는 코드는 `invalid` 문구 — 다른 사용자 제안은 403이 아니라 404 `not_found`. 메모리 직접 편집의 409(동시 수정, B 화면)는 proposals API가 아니라 CT §3.3 밖이므로 기존 문구를 유지합니다.
 | `pending·offline` | — | 주 버튼 비활성 + ⑥ "연결되면 확인할 수 있어요". approve는 **outbox에 넣지 않음**(누를 때 토큰 발급, 1회용) |
@@ -208,7 +226,9 @@ SSE `chat.completion.confirmation`(TP §10.3) 필드를 그대로 받습니다:
 //   tool === 'memory.propose'                                → 'remember'
 //   tool === 'proactive.propose_followup'                    → 'proactive'
 //   그 외                                                     → 'tool'
-// 위험 스타일(CT Q13): scopes의 verb가 send → danger, payload_view.op==='delete' → danger.
+// 위험 스타일(CT Q13): scopes에 send 또는 delete, 또는 payload_view.op==='delete' → danger.
+// 주 버튼(tool, CT Q19): VERB_LABEL[payload_view.verb] ?? VERB_LABEL.run
+//   const VERB_LABEL = { add:'추가', update:'변경', send:'보내기', delete:'삭제', run:'실행' }
 //   write는 primary(accent) — 아키텍트 확정 (§F-1 해결)
 // 토큰은 approve 직전 reissue 응답으로만 받음(CT §3.5.4). SSE·actions 목록에는 토큰 없음. token_expires_at 카운트다운·자동 재발급 없음
 ```
@@ -216,7 +236,7 @@ API:
 - 승인 `POST /v1/actions/{id}/approve` `{confirm_token, payload_hash}` (CSRF·Origin; 브라우저 fetch는 Origin 자동)
 - 거절 `POST /v1/actions/{id}/reject`
 - 토큰 발급(승인 버튼을 누를 때만, 곧바로 approve) `POST /v1/actions/{id}/reissue`
-- 부분 선택 재제안·만료 후 다시 요청 `POST /v1/proposals/{id}/revise` `{item_ids}`(add는 빈 본문) → 새 제안 `{action_id, payload_view, payload_hash, confirm_token, expires_at, …}`. 카드는 `data-action-id`를 새 id로 바꾸고 원 id는 폐기 처리
+- 부분 선택 재제안·만료 후 다시 요청 `POST /v1/proposals/{id}/revise` `{item_ids}`(add는 빈 본문) → 새 제안 `{action_id, payload_view, payload_hash, confirm_token, expires_at, …}`. 카드는 `data-action-id`를 새 id로 바꾸고 원 id는 폐기 처리. 응답의 `confirm_token`은 **저장하지 않고 버림** — 승인은 언제나 누를 때 reissue → approve(같은 흐름 하나만 유지)
 - 복원 `GET /v1/actions?status=pending`
 JS 인터페이스(프론트 구현 가이드):
 ```js
@@ -241,6 +261,10 @@ setCardState(action_id, state, { message, result })
 
 ## B0. 데이터 (MEM §1·§4 기준)
 항목: `{id, kind: profile|preference|fact|task, text(≤300자), pinned, confidence: user|confirmed, source:{thread_id, message_id}, created_at, updated_at, expires_at}`. 최대 200개, 64KiB.
+상태 판단(CT §2·Q8·Q17, **메모리 전용 킬스위치 필드는 없음**):
+- `system.memory_read_only=true` → 읽기 전용(B3 배너). 목록은 보이고 추가·편집·삭제·모두 지우기 비활성. **`memory.enabled` 토글은 그대로 켜고 끌 수 있음**(설정 저장은 메모리 파일과 별개).
+- 쓰기 요청이 503 `memory_read_only` 또는 403 `kill_switch`를 받으면 같은 배너로 전환하고 `GET /v1/settings`를 다시 읽음. 403 `kill_switch`일 때만 토글도 비활성(아래 문구).
+- `system.tools_available=false`(전체 킬스위치)면 '기억해'·'잊어줘' 카드가 오지 않음 — UI 처리 없음.
 API: `GET /v1/memory`, `POST /v1/memory/items`, `PATCH /v1/memory/items/{id}`(text, pinned, expires_at), `DELETE /v1/memory/items/{id}`, `DELETE /v1/memory`, `GET /v1/memory/export`. 토글 `memory.enabled`(기본 on, `GET/PATCH /v1/settings`, Q7 확정).
 
 ## B1. '기억해' 카드 = §C variant `remember`
@@ -295,7 +319,8 @@ API: `GET /v1/memory`, `POST /v1/memory/items`, `PATCH /v1/memory/items/{id}`(te
 - **모든 메모리 지우기**: 액션 시트 "모든 메모리를 지울까요? 백업 사본도 복구할 수 없게 돼요." / [모두 지우기](danger) / 취소. 되돌리기 없음. `DELETE /v1/memory`.
 - 내보내기: `GET /v1/memory/export` → 파일 다운로드(`eve-memory-YYYY-MM-DD.json`), iOS는 공유 시트.
 - 빈 상태: brain 44 `--label-3` + "아직 기억한 게 없어요" 17/600 + "대화 중에 '기억해'라고 하거나 + 로 직접 추가할 수 있어요" 15 `--label-2`.
-- 로딩: 행 스켈레톤 3개(THREADS §2.6). 오류: "메모리를 불러오지 못했어요" + [다시 시도]. 메모리 파일 손상으로 읽기 전용(MEM §7 S5-R6): 상단 `--banner-bg` 줄 "지금은 메모리를 바꿀 수 없어요" + `+`·스와이프·편집 비활성. 판단 = `GET /v1/settings`의 `system.memory_read_only`(CT Q17, `GET /v1/memory`엔 없음).
+- 로딩: 행 스켈레톤 3개(THREADS §2.6). 오류: "메모리를 불러오지 못했어요" + [다시 시도]. 메모리 파일 손상으로 읽기 전용(MEM §7 S5-R6): 상단 `--banner-bg` 줄 "지금은 메모리를 바꿀 수 없어요" + 보조 13 `--label-2` "저장된 메모리는 그대로 있고, 곧 다시 쓸 수 있어요" + `+`·스와이프·편집·모두 지우기 비활성(토글은 유지). 킬스위치(403 `kill_switch`): 같은 배너 + 토글 비활성, 토글 아래 footer "지금은 메모리 기능을 쓸 수 없어요".
+- 직접 추가·편집 오류 코드 매핑: 422 `secret_detected` → "비밀번호·키·카드번호처럼 보이는 내용은 저장할 수 없어요", 400 `invalid`(길이) → "300자까지 쓸 수 있어요", 422 `cap_exceeded` → "메모리가 가득 찼어요", 500 `internal_error` → "저장하지 못했어요. 잠시 후 다시 시도해 주세요". 분기는 본문 `error_code`. 판단 = `GET /v1/settings`의 `system.memory_read_only`(CT Q17, `GET /v1/memory`엔 없음).
 - 스레드별 "메모리 없이" 옵션: **P1 범위 밖**(CT Q18). 컨텍스트 메뉴 항목을 만들지 않음.
 
 ## B4. 접근성
@@ -314,7 +339,7 @@ API: `GET /v1/memory`, `POST /v1/memory/items`, `PATCH /v1/memory/items/{id}`(te
 | Q2 | Thread `unread_count`, `updated_at` 정렬 | A1, A3.1 |
 | Q3 | `provenance.job_name`(Message·SSE 둘 다) | A1, A2, C4 |
 | Q4 | Message `kind`: `null`\|`digest`, 모르는 값은 `null` 취급 | A1, A2 |
-| Q5 | **보류(P1 밖)** — job 전용 스레드 없음. 확장안: Thread `kind:"job"` + `job_id`(MINOR) | A1, A3.1, A6에서 UI 제거 |
+| Q5 | job 전용 스레드 종류 없음. 원 스레드 없는 job은 첫 실행 때 `job_name` 제목 스레드 생성·재사용. 확장안: Thread `job_id`(MINOR) | A1 |
 | Q6 | `POST /v1/threads/{id}/read` → `{unread_count:0}`, 메시지별 read도 유지 | A3.3 |
 | Q7 | `GET/PATCH /v1/settings`(부분 merge) | A5, B0 |
 | Q8 | 읽기 전용 `system.{proactive_available, tools_available, memory_read_only}`, PATCH 시 400 | A5 |
@@ -327,6 +352,8 @@ API: `GET /v1/memory`, `POST /v1/memory/items`, `PATCH /v1/memory/items/{id}`(te
 | Q15 | `revise {item_ids}` 부분집합, 새 제안으로 교체 | B2, C3 |
 | Q16 | **보류(P1 밖)** — 매칭 없음 = 카드 없음. 확장안: SSE `tool_result` `status:"no_match"`(MINOR) | B2에서 링크 제거 |
 | Q17 | `system.memory_read_only` | B3 |
+| Q19 | tool 주 버튼 = `payload_view.verb`(add/update/send/delete/run), 모르는 값 run, danger는 scopes | C2.1, C4 |
+| Q20 | `template_kind`는 Message 최상위 | A1, A2 |
 | Q18 | **보류(P1 밖)** — 스레드별 메모리 끄기. 확장안: `threads.settings` `{"memory":false}` 또는 `PATCH /v1/threads/{id}` | B3에서 UI 제거 |
 
 ## F. 계약에 대한 피드백 — 모두 해결됨
