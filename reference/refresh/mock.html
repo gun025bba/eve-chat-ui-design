@@ -1,0 +1,38 @@
+<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width">
+<style>
+:root{--bg:#000;--l1:#1C1C1E;--l2:#2C2C2E;--label:#F5F5F7;--l-2:rgba(235,235,245,.62);--l-3:rgba(235,235,245,.32);--hair:rgba(255,255,255,.08);--accent:#0A84FF;--brand:#00D2BE;--mat:rgba(28,28,30,.66)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--label);font:17px/1.5 -apple-system,"Apple SD Gothic Neo",system-ui,sans-serif;word-break:keep-all;height:844px;overflow:hidden;position:relative}
+body::before{content:"";position:absolute;inset:-20% -20% auto;height:420px;background:radial-gradient(50% 60% at 50% 0,rgba(0,210,190,.10),transparent 70%);pointer-events:none}
+.i{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+nav{position:absolute;top:0;left:0;right:0;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 8px;background:var(--mat);backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);box-shadow:inset 0 -.5px 0 var(--hair);z-index:2}
+nav .b{width:44px;height:44px;display:grid;place-items:center;color:var(--accent);border-radius:22px}
+nav .t{text-align:center;font:600 17px/22px inherit}nav .t small{display:block;font:500 12px/16px inherit;color:var(--l-3);letter-spacing:.2px}
+main{position:absolute;top:52px;bottom:92px;left:0;right:0;padding:24px 16px;overflow:hidden}
+.empty{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.mark{width:56px;height:56px;border-radius:16px;background:#141517 url(../../logo/final/mark-dark.svg) center/34px no-repeat;box-shadow:inset 0 0 0 .5px rgba(255,255,255,.1),0 8px 32px rgba(0,210,190,.18);margin-bottom:20px}
+h1{font:700 28px/34px inherit;letter-spacing:-.4px;margin:0 0 8px}.sub{font-size:15px;color:var(--l-2);margin:0 0 28px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
+.chip{text-align:left;padding:14px;border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.03));box-shadow:inset 0 0 0 .5px var(--hair)}
+.chip .i{width:18px;height:18px;color:var(--brand);margin-bottom:8px;display:block}.chip b{display:block;font:600 15px/20px inherit}.chip span{font-size:13px;line-height:18px;color:var(--l-2)}
+.me{margin-left:auto;max-width:78%;width:max-content;background:var(--l2);padding:10px 14px;border-radius:20px 20px 6px 20px;font-size:16px;line-height:22px;margin-bottom:20px}
+.ai{font-size:16px;line-height:24px}.ai p{margin:0 0 10px}
+.src{display:flex;gap:6px;margin:4px 0 10px}.src span{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px 0 6px;border-radius:13px;background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 .5px var(--hair);font-size:12px;color:var(--l-2)}.src i{width:14px;height:14px;border-radius:4px;background:var(--l2);display:inline-block}
+.act{display:flex;gap:2px;margin-left:-10px;color:var(--l-3)}.act div{width:36px;height:36px;display:grid;place-items:center}.act .i{width:18px;height:18px}
+.comp{position:absolute;left:0;right:0;bottom:0;padding:10px 12px 26px;background:linear-gradient(transparent,#000 40%)}
+.field{display:flex;align-items:flex-end;gap:6px;padding:6px;border-radius:26px;background:var(--mat);backdrop-filter:blur(24px) saturate(180%);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.12),0 8px 24px rgba(0,0,0,.4)}
+.field .g{width:36px;height:36px;display:grid;place-items:center;color:var(--l-2);border-radius:18px}
+.field .ph{flex:1;padding:7px 2px;color:var(--l-3);font-size:17px;line-height:22px}
+.field .s{width:36px;height:36px;border-radius:18px;display:grid;place-items:center;background:var(--accent);color:#fff}.field .s .i{width:20px;height:20px;stroke-width:2.25}
+.tag{position:absolute;top:60px;right:12px;z-index:3;font:600 11px/1 inherit;padding:5px 8px;border-radius:8px;background:var(--brand);color:#000}
+</style>
+<object data="../../icons/sprite.svg" hidden></object>
+<body>
+<script>fetch('../../icons/sprite.svg').then(r=>r.text()).then(t=>document.body.insertAdjacentHTML('afterbegin',t))</script>
+<nav><div class=b><svg class=i><use href="#i-chevron-left"/></svg></div><div class=t>새 대화<small>로컬 · 비공개</small></div><div class=b><svg class=i><use href="#i-compose"/></svg></div></nav>
+<main id=m></main>
+<div class=comp><div class=field><div class=g><svg class=i><use href="#i-globe"/></svg></div><div class=ph>메시지</div><div class=s><svg class=i><use href="#i-send"/></svg></div></div></div>
+<script>
+const v=location.hash.slice(1),m=document.getElementById('m');
+m.innerHTML=v==='chat'?`<div class=me>이번 주 서울 날씨 정리해 줘</div><div class=ai><p>이번 주 서울은 화요일까지 맑고, 수요일 오후부터 비가 와요. 주말에는 다시 개고 아침 기온이 5°C 안팎으로 떨어져요.</p><div class=src><span><i></i>기상청</span><span><i></i>네이버 날씨</span><span>+2</span></div><div class=act><div><svg class=i><use href="#i-copy"/></svg></div><div><svg class=i><use href="#i-regenerate"/></svg></div><div><svg class=i><use href="#i-thumb-up"/></svg></div><div><svg class=i><use href="#i-thumb-down"/></svg></div></div></div>`
+:`<div class=empty><div class=mark></div><h1>무엇을 도와드릴까요?</h1><p class=sub>Eve는 이 기기 가까이에서 실행돼요</p><div class=grid>${[['source','코드 리뷰','이 함수의 개선점을 알려줘'],['sparkle','요약','긴 글을 핵심 3줄로'],['globe','번역','자연스러운 영어 문장으로'],['think','아이디어','주말 사이드 프로젝트']].map(([i,b,s])=>`<div class=chip><svg class=i><use href="#i-${i}"/></svg><b>${b}</b><span>${s}</span></div>`).join('')}</div></div>`;
+</script>
