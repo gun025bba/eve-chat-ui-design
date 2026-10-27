@@ -1,6 +1,6 @@
 # REFRESH-SPEC: 비주얼 리프레시 · Eve 아이콘 · 모션
 
-기준: eve-chat-ui `5aefb4b` (v1.2.0). SPEC.md, NATIVE-SPEC.md 토큰을 **덮어쓰는** 문서예요. 충돌하면 이 문서가 우선해요.
+기준: eve-web (구 eve-chat-ui) `5aefb4b` (v1.2.0). SPEC.md, NATIVE-SPEC.md 토큰을 **덮어쓰는** 문서예요. 충돌하면 이 문서가 우선해요.
 출처 영역(가로 스크롤)은 별도 작업이라 여기서는 다루지 않아요. 아래 칩 스타일은 그 작업과 맞추기 위한 참고예요.
 
 목업: `reference/refresh/mock.html#empty`, `#chat` · 아이콘: `icons/preview.html`

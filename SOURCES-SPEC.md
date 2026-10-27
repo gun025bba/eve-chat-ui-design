@@ -1,6 +1,6 @@
 # SOURCES-SPEC — 답변 출처 컴팩트화 + 가로 넘침 차단
 
-상태: v1 (2026-10-27) · 대상: gun025bba/eve-chat-ui `main` 5aefb4b · 우선순위: 긴급
+상태: v1 (2026-10-27) · 대상: gun025bba/eve-web (구 eve-chat-ui) `main` 5aefb4b · 우선순위: 긴급
 
 ## 0. 원인 (재현 확인)
 390px 뷰포트, 실제 `styles.css`로 재현: `#messages.scrollWidth` 726 / `clientWidth` 390.
