@@ -344,7 +344,7 @@ API: `GET /v1/memory`, `POST /v1/memory/items`, `PATCH /v1/memory/items/{id}`(te
 - 설정 조회 실패·오프라인이면 이번 실행은 건너뜀(seen 기록 안 함).
 
 **seen 저장**: localStorage `eve.mem.introSeen = "1"`(즉시) + 서버 `ui.memory_intro_seen: true` PATCH(기기 간 1회 보장).
-- 판단: localStorage **또는** 서버 값 중 하나라도 true면 안 봄 처리 아님 → 표시 안 함.
+- 판단: localStorage **또는** 서버 값 중 하나라도 true면 이미 본 것으로 보고 표시 안 함.
 - 서버 키는 계약에 아직 없음 → **TODO(아키텍트)**: `/v1/settings`에 사용자 쓰기 가능 `ui.memory_intro_seen`(bool, 기본 false, MINOR) 추가 요청. 생기기 전엔 localStorage만 쓰고, PATCH 400이면 조용히 무시.
 - 기록 시점: 시트가 **보였을 때**(버튼을 안 누르고 닫아도 한 번으로 침).
 
