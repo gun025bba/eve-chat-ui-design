@@ -261,10 +261,11 @@ setCardState(action_id, state, { message, result })
 
 ## B0. 데이터 (MEM §1·§4 기준)
 항목: `{id, kind: profile|preference|fact|task, text(≤300자), pinned, confidence: user|confirmed, source:{thread_id, message_id}, created_at, updated_at, expires_at}`. 최대 200개, 64KiB.
-상태 판단(CT §2·Q8·Q17 + eve-serving PR #32):
-- **`system.memory_available=false`(읽기 전용 bool, PR #32) → 킬스위치.** 설정을 불러오자마자 토글 비활성 + 토글 아래 footer "지금은 메모리 기능을 쓸 수 없어요", 메모리 화면은 B3 읽기 전용 배너. 필드가 없으면(구 서버) `true`로 간주.
-- `system.memory_read_only=true` → 읽기 전용(B3 배너). 목록은 보이고 추가·편집·삭제·모두 지우기 비활성. **`memory.enabled` 토글은 그대로 켜고 끌 수 있음**(설정 저장은 메모리 파일과 별개).
-- 쓰기 요청이 503 `memory_read_only` 또는 403 `kill_switch`를 받으면 같은 배너로 전환하고 `GET /v1/settings`를 다시 읽음. 403 `kill_switch`는 **세션 중 상태가 바뀐 경우의 폴백**: 받으면 토글도 비활성 + 같은 footer, 그리고 `GET /v1/settings`를 다시 읽어 `memory_available`로 맞춤.
+상태 판단 — **eve-serving main `docs/architecture/ui-api-contract.md` Q8·Q17·§3.9.7로 확인(1edcf6a 기준)**:
+- `system.memory_available`(읽기 전용 bool) = 서버 킬스위치(`GW_MEMORY_ENABLED`). `false`면 응답에 `memory` 블록이 없고 `memory` PATCH는 400. UI: 토글 비활성 + footer "지금은 메모리 기능을 쓸 수 없어요", 메모리 화면은 읽기 전용 배너(내보내기는 허용). 필드가 없으면(구 서버) `true`.
+- `memory.enabled`(bool, **키가 없으면 false**). 실제 적용 = `memory_available` AND `memory.enabled`.
+- **`system.memory_read_only`는 없음**(Q17·§3.9.7: 설정에 노출하지 않음). 읽기 전용(MEM §7 손상 복구)은 쓰기 요청의 503 `memory_read_only`로만 알 수 있음 → B3 배너로 전환하고 시트를 다시 열 때까지 유지. 토글은 그대로 사용 가능.
+- 403 `kill_switch`는 세션 중 상태가 바뀐 경우의 폴백: 받으면 `GET /v1/settings`를 다시 읽어 `memory_available`로 맞춤.
 - `system.tools_available=false`(전체 킬스위치)면 '기억해'·'잊어줘' 카드가 오지 않음 — UI 처리 없음.
 API: `GET /v1/memory`, `POST /v1/memory/items`, `PATCH /v1/memory/items/{id}`(text, pinned, expires_at), `DELETE /v1/memory/items/{id}`, `DELETE /v1/memory`, `GET /v1/memory/export`. 토글 `memory.enabled`(기본 on, `GET/PATCH /v1/settings`, Q7 확정).
 
@@ -335,6 +336,39 @@ API: `GET /v1/memory`, `POST /v1/memory/items`, `PATCH /v1/memory/items/{id}`(te
 | 인증 카드: `identity_not_allowed` | 이 계정은 쓸 수 없어요 | 허용된 Tailscale 계정으로 로그인한 뒤 다시 시도해 주세요. |
 | 요청 오류 토스트 401 | — | 서버에 연결할 수 없어요. 연결을 확인해 주세요 |
 | 요청 오류 토스트 `identity_not_allowed` | — | 허용되지 않은 계정이에요 |
+
+## B5. 첫 실행 소개 시트 `#memIntro` (메모리 기본 켜짐 전환 시)
+**언제**: 서버가 `memory.enabled` 기본값을 true로 바꾼 뒤 처음 앱을 열 때 **한 번**만.
+- 조건(모두 참): 플래그 `eve.flag.memory`(출시 후엔 제거) · `system.memory_available===true` · `memory.enabled===true` · 아직 안 봄 · 서버 연결됨(`isServer`) · 첫 화면(스레드 목록) 진입 후 600ms, 다른 시트·확인 카드·인증 카드가 떠 있지 않음.
+- **`memory_available===false`면 절대 표시하지 않고 seen도 기록하지 않음**(나중에 켜졌을 때 보여야 함). `memory.enabled===false`(사용자가 이미 끔)도 표시 안 함.
+- 설정 조회 실패·오프라인이면 이번 실행은 건너뜀(seen 기록 안 함).
+
+**seen 저장**: localStorage `eve.mem.introSeen = "1"`(즉시) + 서버 `ui.memory_intro_seen: true` PATCH(기기 간 1회 보장).
+- 판단: localStorage **또는** 서버 값 중 하나라도 true면 안 봄 처리 아님 → 표시 안 함.
+- 서버 키는 계약에 아직 없음 → **TODO(아키텍트)**: `/v1/settings`에 사용자 쓰기 가능 `ui.memory_intro_seen`(bool, 기본 false, MINOR) 추가 요청. 생기기 전엔 localStorage만 쓰고, PATCH 400이면 조용히 무시.
+- 기록 시점: 시트가 **보였을 때**(버튼을 안 누르고 닫아도 한 번으로 침).
+
+**레이아웃**: 중간 높이 시트(NATIVE 시트, `.medium` 디텐트 ≈ 화면 55%, 그래버 표시, 아래로 쓸어 닫기 = '좋아요'와 같음). 인라인 카드가 아니라 시트인 이유: 앱 전체 기능 안내이고 한 번뿐이라 대화 흐름에 남기지 않음.
+```
+          ───                               (그래버)
+         [brain 44, --accent]
+   이제 Eve가 기억해요                     (22/28 600, --label, 가운데)
+ 대화에 도움이 되는 걸 기억해 다음 대화에 참고해요   (15/20 --label-2, 가운데)
+
+ [bookmark]  이름·선호·할 일처럼 대화에 도움이 되는 것만 기억해요
+ [hand.raised] 저장하기 전에 항상 먼저 물어봐요
+ [gearshape] 설정 › 메모리에서 보고, 지우고, 내보낼 수 있어요
+
+ [            좋아요            ]       (filled accent, 50pt, radius 14)
+            설정에서 끄기                 (텍스트 버튼 --accent 17, 44pt)
+```
+- 배경 `--bg-elev-1`(#1C1C1E), 좌우 패딩 24, 불릿 행: 아이콘 28 `--accent` + 텍스트 17/22 `--label`, 행 간격 16, `keep-all`. 하단 패딩 `max(16px, env(safe-area-inset-bottom))`, 좌우 `max(24px, env(safe-area-inset-left/right))`.
+- **좋아요**: 닫기만. **설정에서 끄기**: 시트를 닫고 설정 › 메모리를 열어 토글 위치로 스크롤 + 토글에 포커스(자동으로 끄지 않음 — 사용자가 직접 끔). 보조 버튼은 '메모리 보기'가 아니라 '설정에서 끄기'로 확정(새로 켜진 기능이라 끄는 길을 먼저 보여 줌, 보기는 불릿 3에 안내).
+- 라이트 모드: 배경 #fff, 나머지 토큰 그대로.
+
+**모션**: 시트 등장 NATIVE 기본(380ms `cubic-bezier(.32,.72,0,1)`), 아이콘은 등장 후 200ms 페이드+scale .9→1. `prefers-reduced-motion`: 시트·아이콘 모두 opacity 200ms만.
+
+**접근성**: `role="dialog" aria-modal="true" aria-labelledby="memIntroTitle" aria-describedby="memIntroBody"`, 열리면 제목에 포커스, 포커스 가둠, Escape = 좋아요, 닫히면 이전 포커스로 복귀. 불릿 `role="list"`, 아이콘 `aria-hidden`. 버튼 44pt 이상, 다이내믹 타입(rem)에서 시트가 넘치면 스크롤. 텍스트는 `textContent`로만.
 
 ## B4. 접근성
 - 목록 `role="list"`, 행 `aria-label="선호, 아침 브리핑은 한국어로 짧게 받는 걸 선호, 고정됨"`. 스와이프 액션은 VoiceOver 맞춤 동작(`aria-` 대신 행 안 숨김 버튼 "삭제", "고정")으로도 제공.
