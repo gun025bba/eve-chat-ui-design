@@ -321,6 +321,9 @@ API: `GET /v1/memory`, `POST /v1/memory/items`, `PATCH /v1/memory/items/{id}`(te
 - **내보내기(P1 포함)**: 목록 맨 아래, 개수 줄(`23 / 200`) 다음 inset 그룹의 행 "메모리 내보내기"(`--accent`, 44pt) → `GET /v1/memory/export` → 파일 `eve-memory-YYYY-MM-DD.json`. iOS는 `navigator.share({files})` 공유 시트, 미지원이면 다운로드. 기기에만 저장되고 외부로 보내지 않음. 진행 중엔 행 비활성 + "내보내는 중…", 실패 시 토스트 "내보내지 못했어요". 0개면 행 숨김. 읽기 전용·꺼짐 상태에서도 가능. "모든 메모리 지우기"는 그 아래 별도 그룹(`--danger`).
 - 빈 상태: brain 44 `--label-3` + "아직 기억한 게 없어요" 17/600 + "대화 중에 '기억해'라고 하거나 + 로 직접 추가할 수 있어요" 15 `--label-2`.
 - 로딩: 행 스켈레톤 3개(THREADS §2.6). 오류: "메모리를 불러오지 못했어요" + [다시 시도]. 메모리 파일 손상으로 읽기 전용(MEM §7 S5-R6): 상단 `--banner-bg` 줄 "지금은 메모리를 바꿀 수 없어요" + 보조 13 `--label-2` "저장된 메모리는 그대로 있고, 곧 다시 쓸 수 있어요" + `+`·스와이프·편집·모두 지우기 비활성(토글은 유지). 킬스위치(`system.memory_available=false`, 세션 중엔 403 `kill_switch` 폴백): 같은 배너 + 토글 비활성, 토글 아래 footer "지금은 메모리 기능을 쓸 수 없어요".
+- **서버 메모리 꺼짐**(`/v1/memory*`가 본문 `{"detail":"Not Found"}`인 404, `error_code` 없음): 오류가 아니라 기능 없음 → 설정의 메모리 섹션 전체 숨김, 토스트 없음. `{"error_code":"not_found"}` 404(항목 단위)는 이미 지워진 항목으로 보고 목록에서 조용히 제거.
+- **429 `rate_limited`**(목록·추가·편집): 입력 아래 "지금 요청이 많아요. 잠시 후 다시 시도해 주세요" + [다시 시도], 입력값 유지. 앱 전체 BUSY 문구와 같음.
+- `memory.enabled` 필드가 없으면 꺼짐으로 간주(eve-serving 0cdadea, Q7 기본값을 대체).
 - 직접 추가·편집 오류 코드 매핑: 422 `secret_detected` → "비밀번호·키·카드번호처럼 보이는 내용은 저장할 수 없어요", 400 `invalid`(길이) → "300자까지 쓸 수 있어요", 422 `cap_exceeded` → "메모리가 가득 찼어요", 500 `internal_error` → "저장하지 못했어요. 잠시 후 다시 시도해 주세요". 분기는 본문 `error_code`. 판단 = `GET /v1/settings`의 `system.memory_read_only`(CT Q17, `GET /v1/memory`엔 없음).
 - 스레드별 "메모리 없이" 옵션: **P1 범위 밖**(CT Q18). 컨텍스트 메뉴 항목을 만들지 않음.
 
