@@ -261,16 +261,17 @@ setCardState(action_id, state, { message, result })
 
 ## B0. 데이터 (MEM §1·§4 기준)
 항목: `{id, kind: profile|preference|fact|task, text(≤300자), pinned, confidence: user|confirmed, source:{thread_id, message_id}, created_at, updated_at, expires_at}`. 최대 200개, 64KiB.
-상태 판단(CT §2·Q8·Q17, **메모리 전용 킬스위치 필드는 없음**):
+상태 판단(CT §2·Q8·Q17 + eve-serving PR #32):
+- **`system.memory_available=false`(읽기 전용 bool, PR #32) → 킬스위치.** 설정을 불러오자마자 토글 비활성 + 토글 아래 footer "지금은 메모리 기능을 쓸 수 없어요", 메모리 화면은 B3 읽기 전용 배너. 필드가 없으면(구 서버) `true`로 간주.
 - `system.memory_read_only=true` → 읽기 전용(B3 배너). 목록은 보이고 추가·편집·삭제·모두 지우기 비활성. **`memory.enabled` 토글은 그대로 켜고 끌 수 있음**(설정 저장은 메모리 파일과 별개).
-- 쓰기 요청이 503 `memory_read_only` 또는 403 `kill_switch`를 받으면 같은 배너로 전환하고 `GET /v1/settings`를 다시 읽음. 403 `kill_switch`일 때만 토글도 비활성(아래 문구).
+- 쓰기 요청이 503 `memory_read_only` 또는 403 `kill_switch`를 받으면 같은 배너로 전환하고 `GET /v1/settings`를 다시 읽음. 403 `kill_switch`는 **세션 중 상태가 바뀐 경우의 폴백**: 받으면 토글도 비활성 + 같은 footer, 그리고 `GET /v1/settings`를 다시 읽어 `memory_available`로 맞춤.
 - `system.tools_available=false`(전체 킬스위치)면 '기억해'·'잊어줘' 카드가 오지 않음 — UI 처리 없음.
 API: `GET /v1/memory`, `POST /v1/memory/items`, `PATCH /v1/memory/items/{id}`(text, pinned, expires_at), `DELETE /v1/memory/items/{id}`, `DELETE /v1/memory`, `GET /v1/memory/export`. 토글 `memory.enabled`(기본 on, `GET/PATCH /v1/settings`, Q7 확정).
 
 ## B1. '기억해' 카드 = §C variant `remember`
 - 사용자가 "기억해 …"라고 해도 바로 저장하지 않고 항상 카드(MEM §2-1). 본문은 **서버가 정규화한 최종 텍스트**(payload_view) 그대로 — UI에서 편집 불가(해시 바인딩). 수정하고 싶으면 저장 후 설정에서 편집.
 - kind 칩 표시, task면 "30일 뒤 만료" 부가.
-- 결과 줄: "저장했어요 · 메모리 보기"(텍스트 링크 → 설정 › 메모리 push).
+- 결과 줄: "저장했어요 · 메모리 보기"(verb 매핑 C2.1은 tool variant 전용 — remember는 `add`여도 "저장했어요")(텍스트 링크 → 설정 › 메모리 push).
 - 서버 거부(시크릿 필터·상한·taint): 카드 `denied` 상태(C3, CT Q14). 문구는 `error_code`로 결정, 본문 없음.
 - payload_view(CT Q11): `{op:"add", items:[{text, kind}], ambiguous:false}`. 본문 = `items[0].text`(정규화 후).
 
@@ -313,20 +314,29 @@ API: `GET /v1/memory`, `POST /v1/memory/items`, `PATCH /v1/memory/items/{id}`(te
 - 그룹 순서는 주입 순서와 같게(MEM §3): 고정됨 → 만료 안 된 할 일 → 나머지 `updated_at` 최신순. 행: 텍스트 15/20 2줄 말줄임, 오른쪽 kind 13 `--label-3`, `confidence=user`면 별도 표시 없음, `confirmed`는 13 `--label-3` "대화에서" 부가(출처 힌트). 만료 지난 task는 `--label-3` + "만료됨".
 - 행 탭 → 편집 화면 push: textarea 17px(≥16), 300자 카운터(280자 넘을 때만 표시, aria-live 없음 — REVIEW-FEEDBACK N1), kind 세그먼트(프로필/선호/사실/할 일), 고정 스위치, 할 일이면 만료일 행. "완료"로 PATCH. 출처가 있으면 하단 "대화에서 저장됨 · 대화 보기"(source.thread_id로 push).
 - **직접 추가(+)**: 같은 편집 화면, **항상 빈 칸**(모델·툴 출력·URL 쿼리·해시·딥링크로 prefill 금지, MEM §4 S5-H3·S5-R3). `POST /v1/memory/items`, 바로 저장(`confidence=user`). 서버 거부 이유는 입력 아래 13 `--danger`로 표시하고 입력값 유지(마스킹·자동 수정 없음): "비밀번호·키·카드번호처럼 보이는 내용은 저장할 수 없어요", "300자까지 쓸 수 있어요", "메모리가 가득 찼어요". 409(동시 수정) → "다른 곳에서 바뀌었어요. 다시 불러올게요" 후 새로고침.
-- **스와이프 삭제 + 되돌리기**: 왼쪽 스와이프 [고정/해제 (--accent)] [삭제 (--danger)], 풀 스와이프 = 삭제. 행 접힘 260ms → 토스트 "삭제됨 · 되돌리기" 2.8s, 토스트 보조 문구(처음 1회만) "백업에는 최대 7일 남아요"(MEM §7 S5-R2). **DELETE는 토스트가 사라진 뒤 지연 커밋**(THREADS §2.4와 동일, `pagehide` 시 즉시 커밋). 되돌리면 같은 위치에 다시 펼침, 서버 호출 없음.
+- **스와이프 삭제 + 되돌리기**: 왼쪽 스와이프 [고정/해제 (--accent)] [삭제 (--danger)], 풀 스와이프 = 삭제. 행 접힘 260ms → 토스트 "삭제됨 · 되돌리기" 2.8s(**설정 시트 안에 표시** — 앱 공용 토스트는 모달 시트 뒤에 가려 탭할 수 없음. 시트 하단 safe-area 위에 떠 있는 캡슐, 목록 흐름에 끼우지 않음, 버튼 `white-space:nowrap`), 토스트 보조 문구(처음 1회만) "백업에는 최대 7일 남아요"(MEM §7 S5-R2). **DELETE는 토스트가 사라진 뒤 지연 커밋**(THREADS §2.4와 동일, `pagehide` 시 즉시 커밋). 되돌리면 같은 위치에 다시 펼침, 서버 호출 없음.
 - 길게 누르기 컨텍스트 메뉴(NATIVE §7): 편집 · 고정 · 복사 · 삭제.
 - **끄기**(`memory.enabled=false`): 확인 액션 시트 없이 즉시 반영, 목록은 그대로 보이되 `--label-3`로 낮추고 상단 footer "꺼져 있어요. 저장된 메모리는 남아 있지만 대화에 쓰지 않아요". 끈 상태에서도 편집·삭제 가능.
 - **모든 메모리 지우기**: 액션 시트 "모든 메모리를 지울까요? 백업 사본도 복구할 수 없게 돼요." / [모두 지우기](danger) / 취소. 되돌리기 없음. `DELETE /v1/memory`.
-- 내보내기: `GET /v1/memory/export` → 파일 다운로드(`eve-memory-YYYY-MM-DD.json`), iOS는 공유 시트.
+- **내보내기(P1 포함)**: 목록 맨 아래, 개수 줄(`23 / 200`) 다음 inset 그룹의 행 "메모리 내보내기"(`--accent`, 44pt) → `GET /v1/memory/export` → 파일 `eve-memory-YYYY-MM-DD.json`. iOS는 `navigator.share({files})` 공유 시트, 미지원이면 다운로드. 기기에만 저장되고 외부로 보내지 않음. 진행 중엔 행 비활성 + "내보내는 중…", 실패 시 토스트 "내보내지 못했어요". 0개면 행 숨김. 읽기 전용·꺼짐 상태에서도 가능. "모든 메모리 지우기"는 그 아래 별도 그룹(`--danger`).
 - 빈 상태: brain 44 `--label-3` + "아직 기억한 게 없어요" 17/600 + "대화 중에 '기억해'라고 하거나 + 로 직접 추가할 수 있어요" 15 `--label-2`.
-- 로딩: 행 스켈레톤 3개(THREADS §2.6). 오류: "메모리를 불러오지 못했어요" + [다시 시도]. 메모리 파일 손상으로 읽기 전용(MEM §7 S5-R6): 상단 `--banner-bg` 줄 "지금은 메모리를 바꿀 수 없어요" + 보조 13 `--label-2` "저장된 메모리는 그대로 있고, 곧 다시 쓸 수 있어요" + `+`·스와이프·편집·모두 지우기 비활성(토글은 유지). 킬스위치(403 `kill_switch`): 같은 배너 + 토글 비활성, 토글 아래 footer "지금은 메모리 기능을 쓸 수 없어요".
+- 로딩: 행 스켈레톤 3개(THREADS §2.6). 오류: "메모리를 불러오지 못했어요" + [다시 시도]. 메모리 파일 손상으로 읽기 전용(MEM §7 S5-R6): 상단 `--banner-bg` 줄 "지금은 메모리를 바꿀 수 없어요" + 보조 13 `--label-2` "저장된 메모리는 그대로 있고, 곧 다시 쓸 수 있어요" + `+`·스와이프·편집·모두 지우기 비활성(토글은 유지). 킬스위치(`system.memory_available=false`, 세션 중엔 403 `kill_switch` 폴백): 같은 배너 + 토글 비활성, 토글 아래 footer "지금은 메모리 기능을 쓸 수 없어요".
 - 직접 추가·편집 오류 코드 매핑: 422 `secret_detected` → "비밀번호·키·카드번호처럼 보이는 내용은 저장할 수 없어요", 400 `invalid`(길이) → "300자까지 쓸 수 있어요", 422 `cap_exceeded` → "메모리가 가득 찼어요", 500 `internal_error` → "저장하지 못했어요. 잠시 후 다시 시도해 주세요". 분기는 본문 `error_code`. 판단 = `GET /v1/settings`의 `system.memory_read_only`(CT Q17, `GET /v1/memory`엔 없음).
 - 스레드별 "메모리 없이" 옵션: **P1 범위 밖**(CT Q18). 컨텍스트 메뉴 항목을 만들지 않음.
+
+## B4a. 연결·로그인 오류 문구 (결정)
+개인용·tailnet 전용 앱이라 복구 행동이 "Tailscale 켜기/로그인"뿐이므로 **인증 화면에만** 이름을 남기고, 채팅·토스트 오류에서는 인프라 이름을 쓰지 않습니다.
+| 상황 | 제목 | 본문/토스트 |
+|---|---|---|
+| 인증 카드: 연결 안 됨(401) | 서버에 연결할 수 없어요 | 이 기기에서 Tailscale을 켜고 로그인하면 연결돼요. |
+| 인증 카드: `identity_not_allowed` | 이 계정은 쓸 수 없어요 | 허용된 Tailscale 계정으로 로그인한 뒤 다시 시도해 주세요. |
+| 요청 오류 토스트 401 | — | 서버에 연결할 수 없어요. 연결을 확인해 주세요 |
+| 요청 오류 토스트 `identity_not_allowed` | — | 허용되지 않은 계정이에요 |
 
 ## B4. 접근성
 - 목록 `role="list"`, 행 `aria-label="선호, 아침 브리핑은 한국어로 짧게 받는 걸 선호, 고정됨"`. 스와이프 액션은 VoiceOver 맞춤 동작(`aria-` 대신 행 안 숨김 버튼 "삭제", "고정")으로도 제공.
 - 되돌리기 토스트 `role="status"`, 버튼 포커스 가능, 2.8s → VoiceOver 사용 중(포커스가 토스트 안)이면 타이머 정지.
-- 편집 입력 `aria-describedby`로 오류 문구 연결, 오류 시 `aria-invalid="true"`. 모든 행·버튼 44pt, `keep-all`, reduced-motion은 opacity만.
+- 편집 입력 `aria-describedby`로 오류 문구 연결, 오류 시 `aria-invalid="true"`. 모든 행·버튼 44pt(`+`·편집·모두 지우기 포함), `keep-all`, reduced-motion은 opacity만.
 
 ---
 
