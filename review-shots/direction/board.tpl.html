@@ -1,0 +1,312 @@
+<!doctype html><html lang="ko"><meta charset="utf-8">
+<style>
+:root{--bg:#000;--l1:#1C1C1E;--l2:#2C2C2E;--label:#F5F5F7;--l-2:rgba(235,235,245,.62);--l-3:rgba(235,235,245,.34);--hair:rgba(255,255,255,.08);--hair2:rgba(255,255,255,.12);--accent:#0A84FF;--brand:#00D2BE;--mat:rgba(28,28,30,.72)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0b0b0d;color:var(--label);font:15px/1.5 Inter,"Noto Sans CJK KR",sans-serif;word-break:keep-all;width:2760px;padding:56px 60px 64px}
+.sans{font-family:Inter,"Noto Sans CJK KR",sans-serif}
+.serif{font-family:"Noto Serif CJK KR","Noto Serif",serif}
+.i{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.num{font-variant-numeric:tabular-nums}
+/* board */
+.head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:36px}
+.head h1{font-size:34px;line-height:42px;font-weight:700;letter-spacing:-.4px}
+.head p{font-size:15px;color:var(--l-2);margin-top:6px}
+.head .meta{font-size:13px;color:var(--l-3);text-align:right;line-height:20px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:80px}
+.col{position:relative}
+.col+.col::before{content:"";position:absolute;left:-40px;top:0;bottom:0;width:1px;background:var(--hair)}
+.tag{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.4px;padding:4px 10px;border-radius:999px;background:var(--l1);box-shadow:inset 0 0 0 .5px var(--hair2);color:var(--l-2)}
+.col h2{font-size:30px;line-height:38px;font-weight:700;letter-spacing:-.4px;margin:12px 0 8px}
+.col h2 small{font-size:17px;font-weight:500;color:var(--l-2);margin-left:8px;letter-spacing:0}
+.why{font-size:16px;line-height:25px;color:rgba(245,245,247,.86);max-width:1160px;min-height:75px}
+.frames{display:flex;gap:28px;margin:28px 0 0}
+.fw{width:390px}
+.cap{font-size:13px;font-weight:600;color:var(--l-2);margin-bottom:10px;display:flex;gap:8px;align-items:center}
+.cap b{color:var(--label);font-weight:600}
+.diff{margin-top:30px;display:grid;grid-template-columns:1fr 1fr;gap:12px 28px}
+.diff h3{grid-column:1/-1;font-size:13px;letter-spacing:.4px;color:var(--l-3);font-weight:600}
+.diff div{font-size:14px;line-height:21px;color:rgba(245,245,247,.82);padding:12px 14px;border-radius:14px;background:var(--l1);box-shadow:inset 0 0 0 .5px var(--hair)}
+.diff div s{color:var(--l-3);text-decoration:none;display:block;font-size:12px;margin-bottom:2px}
+.note{margin-top:34px;font-size:12px;color:var(--l-3)}
+/* phone */
+.ph{width:390px;height:844px;border-radius:47px;background:var(--bg);position:relative;overflow:hidden;box-shadow:0 0 0 1px #2a2a2d,0 0 0 8px #141416,0 0 0 9px #2a2a2d,0 30px 60px rgba(0,0,0,.6)}
+.sb{position:absolute;top:0;left:0;right:0;height:50px;display:flex;justify-content:space-between;align-items:center;padding:6px 30px 0 38px;font:600 16px/1 Inter,sans-serif;z-index:5}
+.sb .r{display:flex;gap:6px;align-items:center}
+.sb .bars{display:flex;gap:2px;align-items:flex-end;height:11px}.sb .bars i{width:3px;background:#fff;border-radius:1px}
+.sb .bat{width:25px;height:12px;border-radius:4px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.4);padding:1.5px;position:relative}.sb .bat i{display:block;height:100%;width:78%;background:#fff;border-radius:2.5px}
+.isl{position:absolute;top:11px;left:50%;width:120px;height:34px;margin-left:-60px;border-radius:20px;background:#000;box-shadow:0 0 0 1px #0d0d0f;z-index:6}
+.home{position:absolute;bottom:8px;left:50%;width:134px;height:5px;margin-left:-67px;border-radius:3px;background:rgba(255,255,255,.9);z-index:7}
+.glow{position:absolute;inset:-20% -20% auto;height:420px;background:radial-gradient(50% 60% at 30% 0,rgba(0,210,190,.07),transparent 70%);pointer-events:none}
+.nb{width:44px;height:44px;display:grid;place-items:center;border-radius:22px;color:var(--accent)}
+.mk{width:14px;height:14px;background:url(__MARK__) center/contain no-repeat;display:inline-block;flex:none}
+/* ============ A: 노트 ============ */
+.A .nav{position:absolute;top:50px;left:0;right:0;height:48px;display:flex;justify-content:space-between;align-items:center;padding:0 6px;z-index:3}
+.A .nav .nb{color:var(--l-2)}
+.A .nav .ttl{font:500 13px/1 Inter,"Noto Sans CJK KR";color:var(--l-3);letter-spacing:.3px}
+.A .page{position:absolute;top:104px;left:0;right:0;bottom:104px;padding:0 28px;overflow:hidden}
+.A .eyebrow{font:500 12px/16px Inter,"Noto Sans CJK KR";letter-spacing:.4px;color:var(--l-3)}
+.A .eyebrow b{color:var(--brand);font-weight:600}
+.A h1{font:600 32px/44px "Noto Serif CJK KR",serif;letter-spacing:-.5px;margin:14px 0 20px}
+.A .letter{font:400 17px/29px "Noto Serif CJK KR",serif;color:rgba(245,245,247,.88)}
+.A .letter p{margin-bottom:16px}
+.A .lk{color:var(--accent);box-shadow:0 1px 0 rgba(10,132,255,.5);white-space:nowrap}
+.A .sig{display:flex;align-items:center;gap:7px;font:italic 400 15px/20px "Noto Serif",serif;color:var(--l-2);margin-top:4px}
+.A .today{margin-top:26px;border-top:.5px solid var(--hair2)}
+.A .today .row{display:flex;gap:14px;padding:13px 0;border-bottom:.5px solid var(--hair);align-items:baseline}
+.A .today .t{width:44px;font:500 13px/20px Inter;color:var(--l-3);flex:none}
+.A .today .x{font:400 15px/22px "Noto Serif CJK KR",serif;color:rgba(245,245,247,.82)}
+.A .comp{position:absolute;left:0;right:0;bottom:0;height:104px;padding:0 20px;background:linear-gradient(transparent,#000 36%)}
+.A .line{position:absolute;left:20px;right:20px;bottom:36px;height:48px;display:flex;align-items:center;gap:8px;border-top:.5px solid var(--hair2);padding-top:2px}
+.A .line .ph1{flex:1;font:400 17px/22px "Noto Serif CJK KR",serif;color:var(--l-3)}
+.A .line .nb{width:44px;color:var(--l-2)}
+.A .cur{display:inline-block;width:2px;height:20px;background:var(--brand);vertical-align:-4px;margin-left:3px;border-radius:1px}
+.A .dt{font:500 12px/16px Inter;color:var(--l-3);margin:0 0 18px;letter-spacing:.3px}
+.A .memo{margin:0 0 26px 52px;text-align:right;font:400 15px/22px Inter,"Noto Sans CJK KR";color:var(--l-2);padding-right:12px;position:relative}
+.A .memo::after{content:"";position:absolute;right:0;top:3px;bottom:3px;width:2px;border-radius:1px;background:var(--accent);opacity:.8}
+.A .ans{font:400 17px/29px "Noto Serif CJK KR",serif;color:rgba(245,245,247,.92)}
+.A .ans p{margin-bottom:14px}
+.A sup{font:600 11px/1 Inter;color:var(--accent);vertical-align:5px;margin-left:1px}
+.A .fn{margin-top:6px;border-top:.5px solid var(--hair2);padding-top:6px}
+.A .fn .r{display:flex;gap:10px;min-height:34px;align-items:center;font:400 13px/18px Inter,"Noto Sans CJK KR";color:var(--l-2)}
+.A .fn .r b{font:600 11px/1 Inter;color:var(--accent);width:10px}
+.A .fn .r span{margin-left:auto;color:var(--l-3);font-size:12px}
+.A .fn .hd{font:600 11px/16px Inter,"Noto Sans CJK KR";letter-spacing:.5px;color:var(--l-3);margin-bottom:2px}
+.A .acts{display:flex;gap:0;margin:6px 0 0 -12px;color:var(--l-3)}.A .acts .nb{color:var(--l-3);width:44px}.A .acts .i{width:18px;height:18px}
+.A h1.l{font-size:30px;line-height:40px;margin:6px 0 8px}
+.A .sub{font:400 14px/21px Inter,"Noto Sans CJK KR";color:var(--l-2);margin-bottom:22px}
+.A .grp{font:600 11px/16px Inter,"Noto Sans CJK KR";letter-spacing:.6px;color:var(--brand);margin:18px 0 4px}
+.A .mem{display:flex;gap:14px;padding:12px 0;border-bottom:.5px solid var(--hair);align-items:baseline}
+.A .mem .d{width:46px;flex:none;font:500 12px/22px Inter;color:var(--l-3)}
+.A .mem .x{font:400 16px/24px "Noto Serif CJK KR",serif;color:rgba(245,245,247,.9)}
+.A .foot{display:flex;justify-content:space-between;position:absolute;left:28px;right:28px;bottom:30px;font:500 15px/44px Inter,"Noto Sans CJK KR"}
+.A .foot .a{color:var(--accent)}.A .foot .b{color:#FF453A}
+.A .lockrow{display:flex;align-items:center;gap:6px;font:400 12px/16px Inter,"Noto Sans CJK KR";color:var(--l-3);margin-top:14px}.A .lockrow .i{width:14px;height:14px}
+/* ============ B: 하루 ============ */
+.B .page{position:absolute;top:50px;left:0;right:0;bottom:92px;padding:0 16px;overflow:hidden}
+.B .bnav{display:flex;justify-content:space-between;align-items:center;height:44px;margin:0 -10px}
+.B .bnav .nb{color:var(--accent)}
+.B .bnav .mid{font:600 17px/22px Inter,"Noto Sans CJK KR"}
+.B .bnav .mid small{display:block;font:500 12px/14px Inter,"Noto Sans CJK KR";color:var(--l-3);text-align:center;letter-spacing:.2px}
+.B h1{font:700 34px/41px Inter,"Noto Sans CJK KR";letter-spacing:-.4px;margin-top:2px}
+.B .date{font:500 15px/20px Inter,"Noto Sans CJK KR";color:var(--l-2);margin:2px 0 14px}
+.B .strip{display:grid;grid-template-columns:1fr 1fr 1fr;border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.03));box-shadow:inset 0 0 0 .5px var(--hair)}
+.B .strip div{padding:10px 14px 11px;position:relative}
+.B .strip div+div::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:.5px;background:var(--hair2)}
+.B .strip b{display:block;font:600 22px/26px Inter;font-variant-numeric:tabular-nums;letter-spacing:-.3px}
+.B .strip span{font:500 12px/16px Inter,"Noto Sans CJK KR";color:var(--l-2);display:flex;align-items:center;gap:4px}
+.B .strip .em b{color:var(--label)}.B .strip .em span .i{color:var(--brand);width:13px;height:13px}
+.B .strip .wt span .i{color:#FF9F0A;width:13px;height:13px}
+.B .rail{position:relative;margin-top:22px}
+.B .rail::before{content:"";position:absolute;left:51px;top:6px;bottom:0;width:1px;background:linear-gradient(var(--hair2),var(--hair2) 88%,transparent)}
+.B .ev{position:relative;display:flex;gap:0;padding-bottom:18px}
+.B .ev .tm{width:44px;flex:none;font:500 12px/20px Inter;font-variant-numeric:tabular-nums;color:var(--l-3);text-align:left}
+.B .ev .dot{position:absolute;left:47px;top:6px;width:9px;height:9px;border-radius:50%;background:#000;box-shadow:inset 0 0 0 1.5px var(--l-3)}
+.B .ev.e .dot{background:var(--brand);box-shadow:0 0 0 3px #000,0 0 12px rgba(0,210,190,.5)}
+.B .ev.me .dot{background:var(--label);box-shadow:0 0 0 3px #000}
+.B .ev.now .dot{background:var(--accent);box-shadow:0 0 0 3px #000,0 0 0 5px rgba(10,132,255,.3)}
+.B .ev .bd{margin-left:26px;flex:1;min-width:0}
+.B .who{font:600 12px/16px Inter,"Noto Sans CJK KR";letter-spacing:.2px;margin-bottom:2px;color:var(--l-2)}
+.B .e .who{color:var(--brand)}
+.B .ev .tx{font:400 16px/24px Inter,"Noto Sans CJK KR";color:rgba(245,245,247,.92)}
+.B .me .tx{font-weight:500;color:#fff}
+.B .ev .tx.d{color:var(--l-2);font-size:15px;line-height:22px}
+.B .pend{margin-top:8px;border-radius:16px;padding:12px 14px;background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.03));box-shadow:inset 0 0 0 .5px var(--hair)}
+.B .pend b{display:block;font:600 15px/20px Inter,"Noto Sans CJK KR"}
+.B .pend span{font:400 13px/18px Inter,"Noto Sans CJK KR";color:var(--l-2)}
+.B .pend .bt{display:flex;gap:8px;margin-top:10px}
+.B .pend .bt i{font-style:normal;height:32px;padding:0 14px;border-radius:16px;font:600 14px/32px Inter,"Noto Sans CJK KR";background:rgba(255,255,255,.08);color:var(--label)}
+.B .pend .bt i.p{background:var(--accent);color:#fff}
+.B .chips{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.B .chp{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px 0 6px;border-radius:13px;background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 .5px var(--hair);font:500 12px/16px Inter,"Noto Sans CJK KR";color:var(--l-2);letter-spacing:.2px}
+.B .chp i{width:14px;height:14px;border-radius:4px;background:var(--l2);display:grid;place-items:center;font:700 8px/1 Inter;color:var(--l-2);font-style:normal}
+.B .chp.m{color:var(--brand);padding-left:8px}.B .chp.m .i{width:13px;height:13px}
+.B .comp{position:absolute;left:0;right:0;bottom:0;height:92px;padding:0 12px;background:linear-gradient(transparent,#000 40%)}
+.B .one{position:absolute;left:12px;right:12px;bottom:28px;height:44px;border-radius:22px;display:flex;align-items:center;padding:0 4px 0 6px;background:var(--mat);backdrop-filter:blur(24px);box-shadow:inset 0 0 0 .5px var(--hair2),0 8px 24px rgba(0,0,0,.4)}
+.B .one .ph1{flex:1;font:400 17px/22px Inter,"Noto Sans CJK KR";color:var(--l-3);padding-left:4px}
+.B .one .nb{width:36px;height:36px;color:var(--l-2)}
+.B .one .s{width:36px;height:36px;border-radius:18px;background:var(--accent);display:grid;place-items:center;color:#fff}.B .one .s .i{width:20px;height:20px;stroke-width:2.25}
+.B .wk{display:grid;grid-template-columns:repeat(7,1fr);margin:6px 0 4px;text-align:center}
+.B .wk div{font:500 11px/14px Inter,"Noto Sans CJK KR";color:var(--l-3);padding-top:2px}
+.B .wk div b{display:grid;place-items:center;width:36px;height:36px;margin:2px auto 0;border-radius:18px;font:600 17px/1 Inter;color:var(--label);font-variant-numeric:tabular-nums}
+.B .wk div.on b{background:var(--accent)}
+.B .wk div.f b{color:var(--l-3);font-weight:500}
+.B .wk div u{display:block;width:4px;height:4px;border-radius:2px;background:var(--l-3);margin:3px auto 0;text-decoration:none}
+.B .wk div.on u{background:var(--brand)}
+.B .day{font:600 13px/18px Inter,"Noto Sans CJK KR";color:var(--l-2);letter-spacing:.2px;margin:18px 0 8px;display:flex;justify-content:space-between}
+.B .day span{font-weight:500;color:var(--l-3)}
+.B .grp{border-radius:16px;background:var(--l1);overflow:hidden}
+.B .hr{display:flex;gap:12px;padding:11px 14px;min-height:56px;align-items:flex-start;position:relative}
+.B .hr+.hr::before{content:"";position:absolute;left:14px;right:0;top:0;height:.5px;background:var(--hair)}
+.B .hr .tm{width:36px;flex:none;font:500 12px/22px Inter;font-variant-numeric:tabular-nums;color:var(--l-3)}
+.B .hr b{display:block;font:500 15px/21px Inter,"Noto Sans CJK KR"}
+.B .hr span{font:400 13px/18px Inter,"Noto Sans CJK KR";color:var(--l-2);display:block;margin-top:1px}
+.B .hr .mk{margin-top:4px;margin-left:auto;width:12px;height:12px}
+</style>
+<body>
+__SPRITE__
+<div class="head"><div><h1>Eve 디자인 방향 A / B</h1><p>"다른 회사 채팅 앱을 따라 한 느낌" 피드백에 대한 두 가지 방향 · 건영 한 사람을 위한 개인 비서</p></div><div class="meta num">2026-10-28 · UI/UX 디자이너<br>390pt · 다크 · 시안(예시 내용)</div></div>
+<div class="cols">
+
+<!-- ================= A ================= -->
+<section class="col A">
+<span class="tag">방향 A</span>
+<h2>노트 <small>한 사람에게 쓰는 글</small></h2>
+<p class="why">Eve가 말풍선으로 "대화"하지 않고, 건영님에게 <b>글을 써 주는</b> 개인 노트예요. 답은 명조 계열 본문으로 이어지고, 건영님의 말은 여백에 적힌 메모처럼 조용히 남아요. 빈 화면은 슬로건 대신 <b>오늘 날짜, 어제 하던 일, 오늘 일정</b>이 적힌 한 통의 편지예요. 출처는 논문처럼 <b>각주</b>로 붙어요.</p>
+<div class="frames">
+
+<div class="fw"><div class="cap"><b>① 새 대화</b> 날짜가 적힌 편지</div>
+<div class="ph"><div class="glow"></div><div class="isl"></div>
+<div class="sb"><span class="num">9:56</span><span class="r"><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span><span class="bat"><i></i></span></span></div>
+<div class="nav"><div class="nb"><svg class="i"><use href="#i-archive"/></svg></div><div class="ttl">로컬 · 비공개</div><div class="nb"><svg class="i"><use href="#i-memory"/></svg></div></div>
+<div class="page">
+ <div class="eyebrow">10월 28일 수요일 · 오전 9:56</div>
+ <h1>좋은 아침이에요,<br>건영님.</h1>
+ <div class="letter">
+  <p>어제 밤에는 전세 계약서의 특약 조항을 같이 읽었어요. 세 번째 조항이 아직 남아 있어요. <span class="lk">이어서 읽기</span></p>
+  <p>오후엔 비가 와요. 치과는 2시라서, 우산 챙겨서 30분 일찍 나서는 게 좋겠어요.</p>
+  <div class="sig"><span class="mk"></span>Eve</div>
+ </div>
+ <div class="today">
+  <div class="row"><span class="t num">14:00</span><span class="x">치과 · 정기 검진</span></div>
+  <div class="row"><span class="t num">19:30</span><span class="x">어머니께 전화</span></div>
+ </div>
+</div>
+<div class="comp"><div class="line"><div class="ph1">여기에 적어요</div><div class="nb"><svg class="i"><use href="#i-plus"/></svg></div></div></div>
+<div class="home"></div></div></div>
+
+<div class="fw"><div class="cap"><b>② 출처 있는 답</b> 글 + 각주</div>
+<div class="ph"><div class="glow"></div><div class="isl"></div>
+<div class="sb"><span class="num">9:58</span><span class="r"><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span><span class="bat"><i></i></span></span></div>
+<div class="nav"><div class="nb"><svg class="i"><use href="#i-chevron-left"/></svg></div><div class="ttl">10월 28일 · 날씨</div><div class="nb"><svg class="i"><use href="#i-compose"/></svg></div></div>
+<div class="page">
+ <div class="dt num">오전 9:58</div>
+ <div class="memo">이번 주 서울 날씨 정리해 줘</div>
+ <div class="ans">
+  <p>오늘 오후 3시부터 비가 시작돼요.<sup>1</sup> 저녁까지 이어지다 내일 새벽에 그치고, 목요일부터는 다시 맑아요.</p>
+  <p>치과는 2시라서 갈 때는 흐리기만 해요. 돌아오는 길에는 비가 올 테니 우산을 꼭 챙기세요. 주말 아침은 5°C 안팎까지 떨어져요.<sup>2</sup><span class="cur"></span></p>
+ </div>
+ <div class="fn"><div class="hd">각주</div>
+  <div class="r"><b>1</b>기상청 · 서울 단기예보<span>09:41 확인</span></div>
+  <div class="r"><b>2</b>네이버 날씨 · 주간<span>09:41 확인</span></div>
+ </div>
+ <div class="acts"><div class="nb"><svg class="i"><use href="#i-copy"/></svg></div><div class="nb"><svg class="i"><use href="#i-regenerate"/></svg></div><div class="nb"><svg class="i"><use href="#i-thumb-up"/></svg></div></div>
+</div>
+<div class="comp"><div class="line"><div class="ph1">이어서 적어요</div><div class="nb"><svg class="i"><use href="#i-plus"/></svg></div></div></div>
+<div class="home"></div></div></div>
+
+<div class="fw"><div class="cap"><b>③ 기억</b> 건영님의 노트</div>
+<div class="ph"><div class="glow"></div><div class="isl"></div>
+<div class="sb"><span class="num">9:59</span><span class="r"><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span><span class="bat"><i></i></span></span></div>
+<div class="nav"><div class="nb"><svg class="i"><use href="#i-chevron-left"/></svg></div><div class="ttl"></div><div class="nb"><svg class="i"><use href="#i-search"/></svg></div></div>
+<div class="page">
+ <div class="eyebrow"><b>12</b>개를 적어 두었어요</div>
+ <h1 class="l">Eve가 아는<br>건영님</h1>
+ <div class="sub">대화에서 기억해 두면 좋은 것만 적어요. 틀린 건 눌러서 고치거나 밀어서 지워요.</div>
+ <div class="grp">생활</div>
+ <div class="mem"><span class="d num">10.12</span><span class="x">치과는 매달 마지막 수요일 오후 2시</span></div>
+ <div class="mem"><span class="d num">10.03</span><span class="x">커피는 아메리카노, 늦은 오후엔 디카페인</span></div>
+ <div class="grp">말투</div>
+ <div class="mem"><span class="d num">09.21</span><span class="x">존댓말로, 짧게 먼저 말하고 필요하면 덧붙이기</span></div>
+ <div class="mem"><span class="d num">09.21</span><span class="x">아침 7시 전에는 알림을 보내지 않기</span></div>
+ <div class="lockrow"><svg class="i"><use href="#i-lock"/></svg>이 기기 안에만 저장돼요</div>
+</div>
+<div class="foot"><span class="a">내보내기</span><span class="b">모두 지우기</span></div>
+<div class="home"></div></div></div>
+
+</div>
+<div class="diff"><h3>ChatGPT · Claude와 다른 점</h3>
+<div><s>일반적인 채팅 앱</s>가운데 로고 + "무엇을 도와드릴까요?" + 제안 카드 → <b>날짜·어제·오늘 일정이 적힌 개인 편지, 슬로건 없음</b></div>
+<div><s>일반적인 채팅 앱</s>둥근 말풍선 두 색 → <b>말풍선 없음. Eve는 본문 글, 건영님은 오른쪽 여백 메모</b></div>
+<div><s>일반적인 채팅 앱</s>출처 카드·링크 나열 → <b>본문 위첨자 + 하단 각주(확인 시각 포함)</b></div>
+<div><s>일반적인 채팅 앱</s>알약 모양 큰 입력창 → <b>줄 하나(밑줄형) 입력, 파란 전송은 글을 쓸 때만</b></div>
+</div>
+</section>
+
+<!-- ================= B ================= -->
+<section class="col B">
+<span class="tag">방향 B</span>
+<h2>하루 <small>건영님의 오늘 기록</small></h2>
+<p class="why">대화방이 아니라 <b>건영님의 하루가 쌓이는 타임라인</b>이에요. 모든 말과 일이 시각과 함께 한 줄기 세로선에 붙고, 상단 띠에는 Eve가 기억하는 것 · 확인을 기다리는 일 · 오늘 일정이 조용히 보여요. 입력은 아래 한 줄이고, 지난 대화는 "목록"이 아니라 <b>날짜별 기록</b>이에요.</p>
+<div class="frames">
+
+<div class="fw"><div class="cap"><b>① 오늘</b> 하루 현황 + 지금</div>
+<div class="ph"><div class="glow"></div><div class="isl"></div>
+<div class="sb"><span class="num">9:56</span><span class="r"><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span><span class="bat"><i></i></span></span></div>
+<div class="page">
+ <div class="bnav"><div class="nb"><svg class="i"><use href="#i-archive"/></svg></div><div class="mid"></div><div class="nb"><svg class="i"><use href="#i-settings"/></svg></div></div>
+ <h1>오늘</h1>
+ <div class="date">10월 28일 수요일</div>
+ <div class="strip">
+  <div class="em"><b class="num">12</b><span><svg class="i"><use href="#i-memory"/></svg>기억</span></div>
+  <div class="wt"><b class="num">2</b><span><svg class="i"><use href="#i-bell"/></svg>확인 대기</span></div>
+  <div><b class="num">2</b><span>오늘 일정</span></div>
+ </div>
+ <div class="rail">
+  <div class="ev e"><span class="tm">07:42</span><i class="dot"></i><div class="bd"><div class="who">Eve</div><div class="tx d">오후에 비가 와요. 2시 치과는 우산 챙겨서 30분 일찍 나서면 돼요.</div></div></div>
+  <div class="ev"><span class="tm">어제</span><i class="dot"></i><div class="bd"><div class="who">이어서</div><div class="tx d">전세 계약서 특약 3조까지 읽었어요.</div></div></div>
+  <div class="ev"><span class="tm">대기</span><i class="dot" style="box-shadow:inset 0 0 0 1.5px #FF9F0A"></i><div class="bd"><div class="who" style="color:#FF9F0A">확인해 주세요</div>
+   <div class="pend"><b>김 팀장님께 보낼 답장 초안</b><span>일정 변경 요청 · 내일 오전 10시 제안</span><div class="bt"><i class="p">검토하기</i><i>나중에</i></div></div></div></div>
+  <div class="ev now"><span class="tm num">9:56</span><i class="dot"></i><div class="bd"><div class="who" style="color:var(--accent)">지금</div><div class="tx d" style="color:var(--l-3)">아래에 한 줄로 남기면 오늘 기록에 쌓여요.</div></div></div>
+ </div>
+</div>
+<div class="comp"><div class="one"><div class="nb"><svg class="i"><use href="#i-plus"/></svg></div><div class="ph1">지금 일을 남겨요</div></div></div>
+<div class="home"></div></div></div>
+
+<div class="fw"><div class="cap"><b>② 출처 있는 답</b> 기록 한 줄 + 근거</div>
+<div class="ph"><div class="glow"></div><div class="isl"></div>
+<div class="sb"><span class="num">9:58</span><span class="r"><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span><span class="bat"><i></i></span></span></div>
+<div class="page">
+ <div class="bnav"><div class="nb"><svg class="i"><use href="#i-chevron-left"/></svg></div><div class="mid">오늘<small class="num">기억 12 · 대기 2</small></div><div class="nb"><svg class="i"><use href="#i-more"/></svg></div></div>
+ <div class="rail" style="margin-top:14px">
+  <div class="ev me"><span class="tm num">9:58</span><i class="dot"></i><div class="bd"><div class="who">건영</div><div class="tx">이번 주 서울 날씨 정리해 줘</div></div></div>
+  <div class="ev e"><span class="tm num">9:58</span><i class="dot"></i><div class="bd"><div class="who">Eve</div>
+   <div class="tx" style="font-size:16px">오늘 오후 3시부터 비가 시작돼 저녁까지 이어져요. 목요일부터는 다시 맑고, 주말 아침은 5°C 안팎이에요.</div>
+   <div class="tx" style="margin-top:10px">치과는 2시라서 갈 때는 흐리기만 해요. 돌아오는 길에 쓸 우산만 챙기세요.</div>
+   <div class="chips"><span class="chp"><i>기</i>기상청</span><span class="chp"><i>N</i>네이버 날씨</span><span class="chp m"><svg class="i"><use href="#i-memory"/></svg>치과 · 14시</span></div>
+  </div></div>
+  <div class="ev"><span class="tm num">9:59</span><i class="dot"></i><div class="bd"><div class="who">Eve에게 남김</div><div class="tx d">12시에 우산 챙기라고 알려줘</div></div></div>
+  <div class="ev e"><span class="tm num">9:59</span><i class="dot"></i><div class="bd"><div class="who">Eve · 예약됨</div>
+   <div class="pend"><b>오늘 12:00 · 우산 알림</b><span>이 기기에만 알려요 · 외부 전송 없음</span><div class="bt"><i>수정</i><i>취소</i></div></div></div></div>
+ </div>
+</div>
+<div class="comp"><div class="one"><div class="nb"><svg class="i"><use href="#i-plus"/></svg></div><div class="ph1">지금 일을 남겨요</div></div></div>
+<div class="home"></div></div></div>
+
+<div class="fw"><div class="cap"><b>③ 기록</b> 날짜별 하루</div>
+<div class="ph"><div class="glow"></div><div class="isl"></div>
+<div class="sb"><span class="num">9:59</span><span class="r"><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span><span class="bat"><i></i></span></span></div>
+<div class="page">
+ <div class="bnav"><div class="nb"><svg class="i"><use href="#i-chevron-left"/></svg></div><div class="mid"></div><div class="nb"><svg class="i"><use href="#i-search"/></svg></div></div>
+ <h1>기록</h1>
+ <div class="date">2026년 10월</div>
+ <div class="wk">
+  <div>일<b class="num">25</b><u></u></div><div>월<b class="num">26</b><u></u></div><div>화<b class="num">27</b><u></u></div><div class="on">수<b class="num">28</b><u></u></div><div class="f">목<b class="num">29</b></div><div class="f">금<b class="num">30</b></div><div class="f">토<b class="num">31</b></div>
+ </div>
+ <div class="day">오늘 · 수<span class="num">대화 2</span></div>
+ <div class="grp">
+  <div class="hr"><span class="tm num">9:58</span><div><b>이번 주 서울 날씨</b><span>우산 알림 12시로 예약</span></div></div>
+  <div class="hr"><span class="tm num">7:42</span><div><b>아침 브리핑</b><span>Eve가 먼저 알려드렸어요</span></div><span class="mk"></span></div>
+ </div>
+ <div class="day">어제 · 화<span class="num">대화 1</span></div>
+ <div class="grp">
+  <div class="hr"><span class="tm num">21:10</span><div><b>전세 계약서 특약 검토</b><span>3조까지 읽음 · 이어서 보기</span></div></div>
+ </div>
+ <div class="day">10월 26일 · 월<span class="num">대화 3</span></div>
+ <div class="grp">
+  <div class="hr"><span class="tm num">18:20</span><div><b>김 팀장님 메일 요약</b><span>답장 초안 1개</span></div></div>
+  <div class="hr"><span class="tm num">12:05</span><div><b>점심 근처 식당</b><span>조용한 곳 위주</span></div></div>
+ </div>
+</div>
+<div class="home"></div></div></div>
+
+</div>
+<div class="diff"><h3>ChatGPT · Claude와 다른 점</h3>
+<div><s>일반적인 채팅 앱</s>가운데 로고 + 제안 카드 → <b>"오늘" 현황 띠(기억·대기·일정) + 지금까지의 하루 줄기</b></div>
+<div><s>일반적인 채팅 앱</s>왼쪽 대화 제목 목록 → <b>날짜별 기록. 한 주 띠로 이동</b></div>
+<div><s>일반적인 채팅 앱</s>말풍선 → <b>세로 줄기 + 시각. 건영은 흰 점, Eve는 에메랄드 점</b></div>
+<div><s>일반적인 채팅 앱</s>기억은 숨은 설정 → <b>"참고한 기억" 칩으로 근거를 바로 보여줌</b></div>
+</div>
+</section>
+</div>
+<p class="note">토큰: 바탕 #000 · 레이어 #1C1C1E · 강조 #0A84FF · 에메랄드 #00D2BE는 Eve 표식에만 · 탭 영역 44pt · 모든 문구는 예시예요. 사진·실제 출처 화면이 아닌 시안이에요.</p>
+</body></html>
