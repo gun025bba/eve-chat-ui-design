@@ -31,6 +31,7 @@
 | `--rail` | `--hair-strong` | `--hair-strong` | 세로선 |
 | `--halo` | `var(--bg)` | `var(--bg)` | 점 바깥 3px 링(선이 점 뒤로 끊겨 보이게) |
 | `--card` | REFRESH §1.2 | 동일 | 띠, 확인 카드, 칩 |
+| `--accent-fill` | `#0A6FE8` | `#0071E3` | **accent 배경 + 흰 글자 버튼**(확인 카드 주 버튼 `.cc-primary`, 오늘 `.pend`의 [검토하기], 기록 주 띠 선택일 원). 흰 글자 대비 4.7:1(다크 4.72, 라이트 4.7). `--accent`(#0A84FF/#007AFF)는 글자·링크·아이콘·전송 원 같은 글자 없는 채움에 그대로 쓰고, **흰 글자가 올라가는 채움은 `--accent-fill`** |
 나머지(`--bg #000/#fff`, `--layer-1`, `--material`, `--hair`, `--accent #0A84FF/#007AFF`, `--ease-*`, `--d-*`)는 그대로예요. 시안의 `--l-2`는 `--sub`, `--l-3`은 placeholder용 `--label-3`에 해당해요.
 
 ### 타입 (전부 system font, 숫자는 `font-variant-numeric:tabular-nums`)
@@ -166,17 +167,18 @@ x 0────44 ┃47─56┃51 선 ┃ 70────────────
 ## 8. 답변 · 출처 · 기억 · 확인 카드
 ### 8.1 출처 칩 + "참고한 기억" 칩
 - `.chips`: `display:flex; flex-wrap:wrap; gap:6px 6px; margin-top:8px`(본문 아래, `.bd` 폭 안). 가로 스크롤 줄 금지.
+- **기억 칩은 자기 줄(`.mchips`)에 둬요.** 출처 칩 줄 뒤에 이어 붙이지 않고, 출처 칩이 있으면 그 아래 새 줄(`margin-top:8px`), 없으면 본문 아래 첫 줄. 줄 안 규칙(26px 캡슐, 6px 간격, 최대 2개 + `+N`, 줄바꿈)은 같아요. 출처와 기억은 성격이 달라서(웹 vs 내 기록) 한 줄에 섞지 않아요.
 - **출처 칩은 1.9.0 구현을 그대로 재사용**(26px 캡슐, 파비콘 14, 도메인별 묶음, 최대 2개 + `+N`, 파비콘 없으면 첫 글자, 탭 → v1 접힘 목록 펼침, 칩 글자 대비 4.5:1). 시안의 `.chp`와 크기·간격이 같아요(높이 26, 패딩 0 10 0 6, 모서리 13, `--card` + inset .5px `--hair`, `--b-chip` `--sub`). 이 방향에서 바뀌는 건 위치(본문 아래, 타임라인 `.bd` 안)뿐이에요. 펼침은 SOURCES-SPEC §6 + REFRESH-SPEC §3(clip-path/opacity, 높이 애니메이션 없음). 인용 위첨자·접힌 "출처 N개" 행은 1.9.0 상태에 따라 칩으로 대체돼 있으면 칩만, 아니면 둘 다 두지 않아요(중복 금지).
-- **참고한 기억 칩 `.chp.m`**: 같은 칩 모양, 글자·아이콘 `--brand`, 앞에 `memory` 13px, 왼쪽 패딩 8, 라벨 = 기억 텍스트 앞 14자 + "…"(`max-width:160px` ellipsis). 출처 칩 뒤에 이어 붙고 줄이 모자라면 줄바꿈. 최대 2개 + `+N`(N은 `--sub`). 탭 → 설정 시트 `#memoryView`를 열고 해당 항목 행을 스크롤 + 0.6s 하이라이트(`--fill`, 하이라이트는 opacity). 항목이 이미 지워졌으면 조용히 목록 맨 위. 탭 영역 `::before{inset:-9px 0}`로 44pt.
+- **참고한 기억 칩 `.chp.m`**: 같은 칩 모양, 글자·아이콘 `--brand`, 앞에 `memory` 13px, 왼쪽 패딩 8, 라벨 = 기억 텍스트 앞 14자 + "…"(`max-width:160px` ellipsis). **출처 칩과 다른 줄**(위 `.mchips` 줄)에 놓고, 한 줄이 모자라면 줄바꿈. 최대 2개 + `+N`(N은 `--sub`). 탭 → 설정 시트 `#memoryView`를 열고 해당 항목 행을 스크롤 + 0.6s 하이라이트(`--fill`, 하이라이트는 opacity). 항목이 이미 지워졌으면 조용히 목록 맨 위. 탭 영역 `::before{inset:-9px 0}`로 44pt.
 - **데이터(TBD, 아키텍트 확인)**: 답변이 참고한 기억 → 메시지 필드 `memory_refs: [{id, text}]` 가정. **필드가 없으면 칩은 그리지 않아요**(오류 표시 없음). 기억 칸이 숨김 상태(§5)면 이 칩도 숨김. 기억 텍스트는 textContent로만.
 - 순서: 본문 → 칩 줄 → 동작 줄. 스트리밍 중에는 칩이 없고, 완료 후 120ms 페이드인(레이아웃 점프 없이 아래에 추가, SOURCES §7).
 
 ### 8.2 확인 카드 (`.confirm-card`) — 동작은 PROACTIVE-MEMORY-SPEC §C 그대로
 - 위치: Eve `.ev.e` 의 `.bd` 안(본문 아래 8px). 시안의 `.pend`처럼 `--card` + inset .5px `--hair`, 모서리 16, 패딩 12 14 (C1의 14/16과 다름, 시안 값 사용).
-- 구성: 제목 15/20 600 · 보조 13/18 `--sub` · 버튼 줄 위 10px. 버튼은 시각 높이 32, 모서리 16, 14/600, 간격 8; **탭 영역은 `::before{inset:-6px 0}`로 44**. 주 버튼 `--accent`+흰 글자(danger는 `--danger`), 보조 `rgba(255,255,255,.08)`(라이트 `--fill`). 문구는 C2의 variant별 제목·버튼(`payload_view.verb`)을 그대로.
+- 구성: 제목 15/20 600 · 보조 13/18 `--sub` · 버튼 줄 위 10px. 버튼은 시각 높이 32, 모서리 16, 14/600, 간격 8; **탭 영역은 `::before{inset:-6px 0}`로 44**. 주 버튼 `--accent-fill`+흰 글자(danger는 `--danger`), 보조 `rgba(255,255,255,.08)`(라이트 `--fill`). 문구는 C2의 variant별 제목·버튼(`payload_view.verb`)을 그대로.
 - 상태(pending / submitting / checking / confirmed / declined / expired / denied / error)와 에러 코드 매핑, 토큰은 누를 때만 reissue, 카운트다운 없음, `conflict`는 recheck 먼저 — **전부 C3 그대로**. 결과 줄(`confirmed` 등)은 카드 안 13/18 `--sub`.
 - 시안의 "예약됨" 카드의 [수정]·[취소] 버튼: 서버에 해당 API가 없어서 **지금은 만들지 않아요**(결과 줄만). *예약 알림 수정·취소 API는 아키텍트 확인.*
-- 오늘 화면의 `.pend` 카드는 위 모양에서 버튼이 [검토하기](accent)·[나중에]이고, 승인 버튼은 없어요(§6).
+- 오늘 화면의 `.pend` 카드는 위 모양에서 버튼이 [검토하기](`--accent-fill`)·[나중에]이고, 승인 버튼은 없어요(§6).
 
 ## 9. 한 줄 컴포저와 기록
 ### 9.1 컴포저 (`.one`)
@@ -191,10 +193,10 @@ x 0────44 ┃47─56┃51 선 ┃ 70────────────
 
 ### 9.2 기록 (`#/log`)
 내비: 좌 `chevron-left`(뒤로, 사이드바에선 없음), 우 `search` 44×44 `--accent`. 제목 "기록"(`--b-title`), 아래 "2026년 10월"(`--b-date`).
-- **주 띠 `.wk`**: `grid-template-columns:repeat(7,minmax(0,1fr)); margin:6px 0 4px; text-align:center`. 칸: 요일 11/14 500 `--label-3`(미래는 `--label-3`, 나머지 `--sub`), 아래 날짜 원 36×36(17/600 tabular, 위 2px). **선택일** 원 `--accent` + 흰 글자, 기록이 있는 날은 숫자 아래 4px 점 `--sub`(선택일 점은 `--brand`), **미래 날짜·기록 없는 날은 탭 비활성**(`aria-disabled`, 숫자 `--label-3` 500). 날짜 원은 36이지만 칸 전체(폭 ≈ 51×높이 ≥ 56)가 탭 영역.
+- **주 띠 `.wk`**: `grid-template-columns:repeat(7,minmax(0,1fr)); margin:6px 0 4px; text-align:center`. 칸: 요일 11/14 500 `--label-3`(미래는 `--label-3`, 나머지 `--sub`), 아래 날짜 원 36×36(17/600 tabular, 위 2px). **선택일** 원 `--accent-fill` + 흰 글자, 기록이 있는 날은 숫자 아래 4px 점 `--sub`(선택일 점은 `--brand`), **미래 날짜·기록 없는 날은 탭 비활성**(`aria-disabled`, 숫자 `--label-3` 500). 날짜 원은 36이지만 칸 전체(폭 ≈ 51×높이 ≥ 56)가 탭 영역.
 - 띠는 **목록 스크롤에 따라 맨 위에 보이는 날짜의 주**를 보여줘요(스크롤 100ms 스로틀, 주가 바뀔 때만 opacity 교차 `--d-1`). 달 표기도 같이. 가로 스와이프·가로 스크롤 없음. 날짜 탭 = 아래 목록에서 그 날짜 머리글로 스크롤(시스템 smooth) 하고 선택일 갱신.
 - **날짜별 목록**: 날짜 내림차순. 머리글 `--b-day` `--sub`, 위 18 아래 8, 오른쪽 `대화 N`(500 `--sub`). 이름: "오늘 · 수", "어제 · 화", 올해는 "10월 26일 · 월", 작년 이전은 "2025년 12월 30일 · 화". 날짜는 대화의 `updated_at`(Asia/Seoul) 기준이고 대화는 마지막 활동일 한 곳에만 나와요. THREADS §2.6의 "지난 7일/30일/월별" 그룹은 쓰지 않아요. 고정된 대화가 있으면 맨 위 "고정됨" 그룹을 유지해요.
-- 그룹 카드: `--layer-1`, 모서리 16, `overflow:hidden`. 행: `min-height:56; padding:11px 14px; display:flex; gap:12px`, 행 사이 .5px `--hair`(왼쪽 14 띄움). 시각 `--b-time`(36px 열), 제목 15/21 500(1줄 ellipsis), 부제 13/18 `--sub`(미리보기 1줄 ellipsis). 선톡이 있는 대화는 오른쪽 12px Eve 마크(`--brand`, `logo/final` 마크 SVG 재사용). 미읽음은 오른쪽에 `--badge` pill(PROACTIVE A3.1 규격, 마크 왼쪽). 모든 텍스트는 `min-width:0`.
+- 그룹 카드: `--layer-1`, 모서리 16, `overflow:hidden`. 행: `min-height:56; padding:11px 14px; display:flex; gap:12px`, 행 사이 .5px `--hair`(왼쪽 14 띄움). 시각 `--b-time`(36px 열), 제목 15/21 500(1줄 ellipsis), 부제 13/18 `--sub`(미리보기 1줄 ellipsis). 선톡이 있는 대화는 오른쪽 12px Eve 마크(`--brand`, `logo/final` 마크 SVG 재사용). 미읽음은 오른쪽(마크 왼쪽)에 표시: **미읽음이 1건이면 숫자 없이 8×8 점**(`--badge` 색), 2건 이상이면 `--badge` 숫자 pill(PROACTIVE A3.1 규격). 점도 `aria-label`에 "읽지 않음 1건"을 둬요. 모든 텍스트는 `min-width:0`.
 - 행 스와이프·길게 누르기: THREADS §2.3–2.4 그대로(읽음으로 표시 / 이름 변경 / 보관, 풀 스와이프 = 보관, 되돌리기 토스트). 행 접힘은 FLIP(opacity+`translateY`, 높이 트랜지션 금지).
 - 맨 아래: "보관함 · N" 행(`--layer-1` 카드, `archive` 아이콘, `chevron-right`, 44pt+) → `#/archive`(THREADS §2.5 그대로).
 - **검색**: 우상단 `search` → 제목·띠가 opacity로 사라지고 내비에 입력(17px) + "취소". 결과는 날짜 머리글 없이 한 그룹 카드, 부제 자리에 날짜. 서버 우선·250ms debounce·로컬 필터 선표시(THREADS §2.1).
